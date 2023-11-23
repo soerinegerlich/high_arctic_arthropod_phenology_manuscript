@@ -1,0 +1,793 @@
+---
+title: "Temporal trends in high-arctic arthropod phenology"
+author: "Hannah Sørine Gerlich"
+format: html
+editor: visual
+message: false
+warning: false
+output: false
+---
+
+Author contact information:
+
+Email: soger\@ecos.au.dk
+
+## Analyzing temporal trends in high-arctic arthropod phenological events
+
+This file contains all the code necessary to perform linear mixed modelling on the temporal trends of arthropod phenological events.
+
+Initially, we have to load all relevant libraries.
+
+```{r}
+pkgs <- c("tidyverse", "readxl", "corrplot", "stats", "ggpubr", "lme4", "car",
+          "gtsummary","broom.mixed")
+
+vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
+       logical.return = TRUE)
+
+```
+
+Then read the dataset called duration.csv
+
+```{r}
+df_phenology <- read.csv("Data/phenology_metrics.csv", sep=",",stringsAsFactors = FALSE, header = TRUE)
+```
+
+The dataset is missing information on functional groups and we therefore have to add this. The column is called **order**. The dataset also includes phenology metrics for Acari and Collembola in Plot 1, but this is a window trap and we don't consider these traps relevant for sampling soil organisms. Therefore remove this. We also remove Scathophagidae because we don't have a sufficient number of years for this family.
+
+```{r}
+df_phenology <- subset(df_phenology, df_phenology$SpeciesID!= "Scathophagidae")
+
+df_phenology %>%
+  mutate(Order = case_when(
+    SpeciesID == "Acari" ~ "Decomposer",
+    SpeciesID == "ANMU" ~ "Mixed feeder",
+    SpeciesID == "Aphidoidea" ~ "Herbivor",
+    SpeciesID == "Chalcidoidea" ~ "Parasitoid",
+    SpeciesID == "CHCE" ~ "Mixed feeder",
+    SpeciesID == "Coccoidea" ~ "Herbivor",
+    SpeciesID == "Collembola" ~ "Decomposer",
+    SpeciesID == "Culicidae" ~ "Mixed feeder",
+    SpeciesID == "Ichneumonidae" ~ "Parasitoid",
+    SpeciesID == "Linyphiidae" ~ "Predator",
+    SpeciesID == "Lycosidae" ~ "Predator",
+    SpeciesID == "MYSC" ~ "Mixed feeder",
+    SpeciesID == "Nymphalidae" ~ "Mixed feeder",
+    SpeciesID == "Phoridae" ~ "Mixed feeder",
+    SpeciesID == "Thomisidae" ~ "Predator")) -> df_phenology
+
+
+df_phenology$Order[is.na(df_phenology$Order)] <- "NA"
+df_phenology<- subset(df_phenology,Order!="NA")
+
+print(unique(df_phenology$SpeciesID))
+
+df_phenology <- subset(df_phenology, df_phenology$Plot!= "Art1" | df_phenology$SpeciesID!= "Collembola")
+df_phenology <- subset(df_phenology, df_phenology$Plot!= "Art1" | df_phenology$SpeciesID!= "Acari")
+df_phenology<- subset(df_phenology,Plot!="Art6")
+```
+
+## Community temporal trends
+
+The first test is a linear mixed modelling approach for the whole arthropod community (all family-by-plot combinations) across all three phenology events.
+
+```{r}
+m.1 <- lmer(Onset ~ Year + (1 | SpeciesID:Plot), data=df_phenology)
+summary(m.1)
+
+m.2 <- lmer(Peak ~ Year + (1 | SpeciesID:Plot), data=df_phenology)
+summary(m.2)
+
+#Visualise 
+ggplot(df_phenology, aes(Year, Peak))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)
+
+m.3 <- lmer(End ~ Year + (1 | SpeciesID:Plot), data=df_phenology)
+summary(m.3)
+
+m.4 <- lmer(Duration ~ Year + (1 | SpeciesID:Plot), data=df_phenology)
+summary(m.4)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset of arthropod community**")
+tbl_regression(m.2)%>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak of arthropod community**")
+tbl_regression(m.3)%>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End of arthropod community**")
+tbl_regression(m.4)%>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration of arthropod community**")
+```
+
+## Functional group temporal trends
+
+Now the temporal trends of functional groups are modelled. Plot is included as a single random variable as well as the plot and year interaction. Further, the effect of arthropod taxa within each functional group is included as well as the taxa and year interaction.
+
+```{r}
+m.1.func <- lmer(Onset ~ Year*Order + (1 | Plot) + (1 | Order:SpeciesID) + (1 | Year:SpeciesID) + (1 | Year:Plot), data=df_phenology)
+summary(m.1.func)
+
+m.2.func <- lmer(Peak ~ Year*Order + (1 | Plot) + (1 | Order:SpeciesID) + (1 | Year:SpeciesID) + (1 | Year:Plot), data=df_phenology)
+summary(m.2.func)
+
+m.3.func <- lmer(End ~ Year*Order + (1 | Plot) + (1 | Order:SpeciesID) + (1 | Year:SpeciesID) + (1 | Year:Plot), data=df_phenology)
+summary(m.3.func)
+
+m.4.func <- lmer(Duration ~ Year*Order + (1 | Plot) + (1 | Order:SpeciesID) + (1 | Year:SpeciesID) + (1 | Year:Plot), data=df_phenology)
+summary(m.4.func)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.func) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - functional groups**")
+tbl_regression(m.2.func) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - functional groups**")
+tbl_regression(m.3.func) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - functional groups**")
+tbl_regression(m.4.func) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - functional groups**")
+```
+
+## Arthropod taxa temporal trends
+
+Now comparison among arthropod taxa temporal trends are made. The random effect of plot i included in the model.
+
+```{r}
+m.1.spec <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data=df_phenology)
+summary(m.1.spec)
+anova(m.1.spec)
+
+m.2.spec <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data=df_phenology)
+summary(m.2.spec)
+anova(m.2.spec)
+
+m.3.spec <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data=df_phenology)
+summary(m.3.spec)
+anova(m.3.spec)
+
+m.4.spec <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data=df_phenology)
+summary(m.4.spec)
+anova(m.4.spec)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.spec) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Taxa**")
+tbl_regression(m.2.spec) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Taxa**")
+tbl_regression(m.3.spec) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Taxa**")
+tbl_regression(m.4.spec) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Taxa**")
+```
+
+Because of the large variation in the magnitude of phenology responses among arthropod taxa, we test if responses also vary among taxa within each functional group.
+
+```{r}
+df_sub <- subset(df_phenology, Order == "Mixed feeder" )
+df_sub1 <- subset(df_phenology, Order == "Predator" )
+df_sub2 <- subset(df_phenology, Order == "Herbivor" )
+df_sub3 <- subset(df_phenology, Order == "Parasitoid" )
+df_sub4 <- subset(df_phenology, Order == "Decomposer" )
+```
+
+### Mixed feeders
+
+```{r}
+m.1.mix <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub)
+summary(m.1.mix)
+
+m.2.mix <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub)
+summary(m.2.mix)
+
+m.3.mix <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub)
+summary(m.3.mix)
+
+m.4.mix <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub)
+summary(m.4.mix)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.mix) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Mixed feeders**")
+tbl_regression(m.2.mix) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Mixed feeders**")
+tbl_regression(m.3.mix) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Mixed feeders**")
+tbl_regression(m.4.mix) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Mixed feeders**")
+```
+
+### Predator
+
+```{r}
+m.1.pred <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub1)
+summary(m.1.pred)
+
+m.2.pred <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub1)
+summary(m.2.pred)
+
+m.3.pred <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub1)
+summary(m.3.pred)
+
+m.4.pred <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub1)
+summary(m.4.pred)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.pred) %>%
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Predators**")
+tbl_regression(m.2.pred) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Predators**")
+tbl_regression(m.3.pred) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Predators**")
+tbl_regression(m.4.pred) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Predators**")
+```
+
+### Herbivore
+
+```{r}
+m.1.herb <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub2)
+summary(m.1.herb)
+
+m.2.herb <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub1)
+summary(m.2.herb)
+
+m.3.herb <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub2)
+summary(m.3.herb)
+
+m.4.herb <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub2)
+summary(m.4.herb)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.herb) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Herbivores**")
+tbl_regression(m.2.herb) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Herbivores**")
+tbl_regression(m.3.herb) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Herbivores**")
+tbl_regression(m.4.herb) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Herbivores**")
+```
+
+### Parasitoid
+
+```{r}
+m.1.para <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub3)
+summary(m.1.para)
+
+m.2.para <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub3)
+summary(m.2.para)
+
+m.3.para <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub3)
+summary(m.3.para)
+
+m.4.para <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub3)
+summary(m.4.para)
+```
+
+```{r output=TRUE}
+tbl_regression(m.1.para) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Parasitoids**")
+tbl_regression(m.2.para) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Parasitoids**")
+tbl_regression(m.3.para) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Parasitoids**")
+tbl_regression(m.4.para) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Parasitoids**")
+```
+
+### Decomposer
+
+```{r}
+m.1.dec <- lmer(Onset ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub4)
+summary(m.1.dec)
+
+m.2.dec <- lmer(Peak ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub4)
+summary(m.2.dec)
+
+m.3.dec <- lmer(End ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub4)
+summary(m.3.dec)
+
+m.4.dec <- lmer(Duration ~ Year*SpeciesID + (1 | Plot) + (1 | Year:Plot), data = df_sub4)
+summary(m.4.dec)
+```
+
+```{r}
+tbl_regression(m.1.dec) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Onset - Decomposers**")
+tbl_regression(m.2.dec) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Peak - Decomposers**")
+tbl_regression(m.3.dec) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**End - Decomposers**")
+tbl_regression(m.4.dec) %>% 
+  modify_column_unhide(column = std.error) %>%
+  modify_caption("**Duration - Decomposers**")
+```
+
+## Temporal trends of individual taxa across plots
+
+The below function analyse temporal trends for each taxa and phenological event
+
+```{r output=TRUE}
+family_trends <- function(data, SpeciesID, column){
+  df_local <- subset(data, data$SpeciesID == SpeciesID)
+  m <- lmer(df_local[,column] ~ Year + (1 | Plot), df_local)
+  summary(m)
+  
+  tbl_regression(m) %>% 
+  modify_column_unhide(column = std.error)
+}
+
+family_trends_single <- function(data, SpeciesID, column){
+  df_local <- subset(data, data$SpeciesID == SpeciesID)
+  m <- lm(df_local[,column] ~ Year, df_local)
+  summary(m)
+  
+  tbl_regression(m) %>% 
+  modify_column_unhide(column = std.error)
+}
+
+family_trends(df_phenology, "Acari", "Onset")
+family_trends(df_phenology, "Acari", "Peak")
+family_trends(df_phenology, "Acari", "End")
+family_trends(df_phenology, "Acari", "Duration")
+
+family_trends(df_phenology, "Collembola", "Onset")
+family_trends(df_phenology, "Collembola", "Peak")
+family_trends(df_phenology, "Collembola", "End")
+family_trends(df_phenology, "Collembola", "Duration")
+
+family_trends_single(df_phenology, "Aphidoidea", "Onset")
+family_trends_single(df_phenology, "Aphidoidea", "Peak")
+family_trends_single(df_phenology, "Aphidoidea", "End")
+family_trends_single(df_phenology, "Aphidoidea", "Duration")
+
+family_trends(df_phenology, "Coccoidea", "Onset")
+family_trends(df_phenology, "Coccoidea", "Peak")
+family_trends(df_phenology, "Coccoidea", "End")
+family_trends(df_phenology, "Coccoidea", "Duration")
+
+family_trends(df_phenology, "Chironomidae", "Onset")
+family_trends(df_phenology, "Chironomidae", "Peak")
+family_trends(df_phenology, "Chironomidae", "End")
+family_trends(df_phenology, "Chironomidae", "Duration")
+
+family_trends_single(df_phenology, "Culicidae", "Onset")
+family_trends_single(df_phenology, "Culicidae", "Peak")
+family_trends_single(df_phenology, "Culicidae", "End")
+family_trends_single(df_phenology, "Culicidae", "Duration")
+
+family_trends(df_phenology, "Chalcidoidea", "Onset")
+family_trends(df_phenology, "Chalcidoidea", "Peak")
+family_trends(df_phenology, "Chalcidoidea", "End")
+family_trends(df_phenology, "Chalcidoidea", "Duration")
+
+family_trends(df_phenology, "Ichneumonidae", "Onset")
+family_trends(df_phenology, "Ichneumonidae", "Peak")
+family_trends(df_phenology, "Ichneumonidae", "End")
+family_trends(df_phenology, "Ichneumonidae", "Duration")
+
+family_trends(df_phenology, "Linyphiidae", "Onset")
+family_trends(df_phenology, "Linyphiidae", "Peak")
+family_trends(df_phenology, "Linyphiidae", "End")
+family_trends(df_phenology, "Linyphiidae", "Duration")
+
+family_trends(df_phenology, "Lycosidae", "Onset")
+family_trends(df_phenology, "Lycosidae", "Peak")
+family_trends(df_phenology, "Lycosidae", "End")
+family_trends(df_phenology, "Lycosidae", "Duration")
+
+family_trends(df_phenology, "Muscidae", "Onset")
+family_trends(df_phenology, "Muscidae", "Peak")
+family_trends(df_phenology, "Muscidae", "End")
+family_trends(df_phenology, "Muscidae", "Duration")
+
+family_trends(df_phenology, "Nymphalidae", "Onset")
+family_trends(df_phenology, "Nymphalidae", "Peak")
+family_trends(df_phenology, "Nymphalidae", "End")
+family_trends(df_phenology, "Nymphalidae", "Duration")
+
+family_trends(df_phenology, "Phoridae", "Onset")
+family_trends(df_phenology, "Phoridae", "Peak")
+family_trends(df_phenology, "Phoridae", "End")
+family_trends(df_phenology, "Phoridae", "Duration")
+
+family_trends(df_phenology, "Sciaridae", "Onset")
+family_trends(df_phenology, "Sciaridae", "Peak")
+family_trends(df_phenology, "Sciaridae", "End")
+family_trends(df_phenology, "Sciaridae", "Duration")
+
+family_trends(df_phenology, "Thomisidae", "Onset")
+family_trends(df_phenology, "Thomisidae", "Peak")
+family_trends(df_phenology, "Thomisidae", "End")
+family_trends(df_phenology, "Thomisidae", "Duration")
+```
+
+## Temporal trend of all family-by-plot combinations for each phenological event
+
+The below code loops through all family and plot in the dataset and performs simple linear regression. All summary information from the linear models is gathered in a data frame.
+
+```{r}
+df_summary_lm<-data.frame(SpeciesID=character(),Plot=character(),Pheno_event=character(),Slope=numeric(),SE=numeric(),Tvalue=numeric(),Pvalue=numeric(),Rsquare=numeric(),AdjRsquare=numeric(),
+                          Count=numeric(),n=numeric(),Residual=numeric())
+
+for (i in unique(df_phenology$SpeciesID)){
+  print(i)
+  df8b<-subset(df_phenology,SpeciesID==i)
+  for (j in unique(df8b$Plot)){
+    df8a<-subset(df8b,Plot==j)
+    
+    if(sum(!is.na(df8a$Onset))<6){ 
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1], 
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Onset",
+                          Slope=NA,
+                          SE=NA,
+                          Tvalue=NA,
+                          Pvalue=NA,
+                          Rsquare=NA,
+                          AdjRsquare=NA,
+                          Count=NA,
+                          n=NA,
+                          Residual=NA)
+    }
+    else{
+      mod1 <- lm(Onset ~ Year, data =df8a)       
+      Residual1 <- sqrt(deviance(mod1)/df.residual(mod1))
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1], 
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Onset",
+                          Slope=summary(mod1)$coefficients[2],
+                          SE=summary(mod1)$coefficients[4],
+                          Tvalue=summary(mod1)$coefficients[6],
+                          Pvalue=summary(mod1)$coefficients[8],
+                          Rsquare=summary(mod1)$r.squared,
+                          AdjRsquare=summary(mod1)$adj.r.squared,
+                          Count=sum(df8a$TotalAbundance),
+                          n=sum(!is.na(df8a$Onset)),
+                          Residual=Residual1)
+      df_summary_lm<-bind_rows(df_summary_lm,df_temp)
+    }
+    #plot(mod1)
+    
+    
+    if(sum(!is.na(df8a$Peak))<6){
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Peak",
+                          Slope=NA,
+                          SE=NA,
+                          Tvalue=NA,
+                          Pvalue=NA,
+                          Rsquare=NA,
+                          AdjRsquare=NA,
+                          Count=NA,
+                          n=NA,
+                          Residual=NA)
+    }
+    
+    else{ 
+      mod2 <- lm(Peak ~ Year, data =df8a)
+      Residual2 <- sqrt(deviance(mod2)/df.residual(mod2))
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Peak",
+                          Slope=summary(mod2)$coefficients[2],
+                          SE=summary(mod2)$coefficients[4],
+                          Tvalue=summary(mod2)$coefficients[6],
+                          Pvalue=summary(mod2)$coefficients[8],
+                          Rsquare=summary(mod2)$r.squared,
+                          AdjRsquare=summary(mod2)$adj.r.squared,
+                          Count=sum(df8a$TotalAbundance),
+                          n=sum(!is.na(df8a$Peak)),
+                          Residual=Residual2)
+      df_summary_lm<-bind_rows(df_summary_lm,df_temp)
+    }
+    
+    #plot(mod2)
+    
+    if(sum(!is.na(df8a$End))<6){
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="End",
+                          Slope=NA,
+                          SE=NA,
+                          Tvalue=NA,
+                          Pvalue=NA,
+                          Rsquare=NA,
+                          AdjRsquare=NA,
+                          Count=NA,
+                          n=NA,
+                          Residual=NA)
+    }
+    
+    else{ 
+      
+      mod3 <- lm(End ~ Year, data =df8a)
+      Residual3 <- sqrt(deviance(mod3)/df.residual(mod3))
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="End",
+                          Slope=summary(mod3)$coefficients[2],
+                          SE=summary(mod3)$coefficients[4],
+                          Tvalue=summary(mod3)$coefficients[6],
+                          Pvalue=summary(mod3)$coefficients[8],
+                          Rsquare=summary(mod3)$r.squared,
+                          AdjRsquare=summary(mod3)$adj.r.squared,
+                          Count=sum(df8a$TotalAbundance),
+                          n=sum(!is.na(df8a$End)),
+                          Residual=Residual3)
+      df_summary_lm<-bind_rows(df_summary_lm,df_temp)
+    }
+    
+    if(sum(!is.na(df8a$Duration))<6){
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Duration",
+                          Slope=NA,
+                          SE=NA,
+                          Tvalue=NA,
+                          Pvalue=NA,
+                          Rsquare=NA,
+                          AdjRsquare=NA,
+                          Count=NA,
+                          n=NA,
+                          Residual=NA)
+    }
+    
+    else{ 
+      
+      mod4 <- lm(Duration ~ Year, data =df8a)
+      Residual4 <- sqrt(deviance(mod4)/df.residual(mod4))
+      df_temp<-data.frame(SpeciesID=df8a$SpeciesID[1],
+                          Plot=df8a$Plot[1],
+                          Pheno_event="Duration",
+                          Slope=summary(mod4)$coefficients[2],
+                          SE=summary(mod4)$coefficients[4],
+                          Tvalue=summary(mod4)$coefficients[6],
+                          Pvalue=summary(mod4)$coefficients[8],
+                          Rsquare=summary(mod4)$r.squared,
+                          AdjRsquare=summary(mod4)$adj.r.squared,
+                          Count=sum(df8a$TotalAbundance),
+                          n=sum(!is.na(df8a$Duration)),
+                          Residual=Residual4)
+      df_summary_lm<-bind_rows(df_summary_lm,df_temp)
+    }
+  }
+}
+
+```
+
+The data is checked for significance in the below code (at the 0.05 level). This is to get a feeling of the strength of the temporal trends found. In the summary, a new column called "Significance" is created, indicating if the trend is significant or not.
+
+```{r}
+df_model_significance <-
+  data.frame(
+    SpeciesID = character(),
+    Plot = character(),
+    Pheno_event = character(),
+    Slope = numeric(),
+    Pvalue = numeric(),
+    AdjRsquare = numeric(),
+    Significance = character()
+  )
+
+for (species in unique(df_summary_lm$SpeciesID)) {
+  print(species)
+  df_summary_lm_sub <- subset(df_summary_lm, SpeciesID == species)
+  for (plot in unique(df_summary_lm_sub$Plot)) {
+    print(plot)
+    df_summary_lm_sub2 <- subset(df_summary_lm_sub, Plot == plot)
+    for (phenoEvent in unique(df_summary_lm_sub2$Pheno_event)) {
+      df_summary_lm_sub3 <-
+        subset(df_summary_lm_sub2, Pheno_event == phenoEvent)
+      
+      Significance_result <- NA
+      
+      if (df_summary_lm_sub3$Pvalue < 0.05 || df_summary_lm_sub3$Pvalue == 0.05) {
+        Significance_result <-
+          "Significant"
+      } else if (df_summary_lm_sub3$Pvalue > 0.05 && df_summary_lm_sub3$Pvalue < 0.06) {
+        Significance_result <-
+          "Near_significant"
+      } else if (df_summary_lm_sub3$Pvalue > 0.05) {
+        Significance_result <-
+          "Non-significant"
+      } else {
+        print("No pvalues")
+        Significance_result <- "Not determined"
+      }
+      
+      
+      df_temp <-
+        data.frame(
+          SpeciesID = species,
+          Plot = plot,
+          Pheno_event = phenoEvent,
+          Slope = df_summary_lm_sub3$Slope,
+          Pvalue = df_summary_lm_sub3$Pvalue,
+          AdjRsquare = df_summary_lm_sub3$AdjRsquare,
+          Significance = Significance_result
+        )
+      
+      df_model_significance <- bind_rows(df_model_significance, df_temp)
+    }
+  }
+}
+
+```
+
+Exploring the results to see number of significant obesrvations and if the slopes are negative or positive
+
+```{r}
+df1 <- filter(df_model_significance, Significance == 'Significant') #Number of significant observations
+df1a <- filter(df_model_significance, Significance == 'Non-significant') #Number of non-significant observations
+df2 <- filter(df1, Slope > 0) #Only 6 of the significant observations are positive
+df3 <- filter(df1, Slope < 0) #48 of the significant observations are negative
+df3a <- subset(df3, df3$Pheno_event!= "Duration") #Check without duration of activity
+```
+
+## Figure on the slopes of temporal linear trends
+
+First we need to due a bit of data wrangling to make a nice figure.
+
+```{r}
+df_summary_lm %>%
+  mutate(Order = case_when(
+           SpeciesID == "Acari" ~ "Decomposer",
+           SpeciesID == "ANMU" ~ "Mixed feeder",
+           SpeciesID == "Aphidoidea" ~ "Herbivore",
+           SpeciesID == "Chalcidoidea" ~ "Parasitoid",
+           SpeciesID == "CHCE" ~ "Mixed feeder",
+           SpeciesID == "Coccoidea" ~ "Herbivore",
+           SpeciesID == "Collembola" ~ "Decomposer",
+           SpeciesID == "Culicidae" ~ "Mixed feeder",
+           SpeciesID == "Ichneumonidae" ~ "Parasitoid",
+           SpeciesID == "Linyphiidae" ~ "Predator",
+           SpeciesID == "Lycosidae" ~ "Predator",
+           SpeciesID == "MYSC" ~ "Mixed feeder",
+           SpeciesID == "Nymphalidae" ~ "Mixed feeder",
+           SpeciesID == "Phoridae" ~ "Mixed feeder",
+           SpeciesID == "Thomisidae" ~ "Predator")) -> df_summary_lm
+
+df_summary_lm$Plot[df_summary_lm$Plot == "Art1"] <- "Plot 1" 
+df_summary_lm$Plot[df_summary_lm$Plot == "Art2"] <- "Plot 2" 
+df_summary_lm$Plot[df_summary_lm$Plot == "Art3"] <- "Plot 3" 
+df_summary_lm$Plot[df_summary_lm$Plot == "Art4"] <- "Plot 4" 
+df_summary_lm$Plot[df_summary_lm$Plot == "Art5"] <- "Plot 5" 
+df_summary_lm$Plot[df_summary_lm$Plot == "Art6"] <- "Plot 6"
+df_summary_lm$Plot[df_summary_lm$Plot == "Art7"] <- "Plot 7" 
+
+df_summary_lm$SpeciesID[df_summary_lm$SpeciesID == "CHCE"] <- "Chironomidae"
+df_summary_lm$SpeciesID[df_summary_lm$SpeciesID == "ANMU"] <- "Muscidae"
+df_summary_lm$SpeciesID[df_summary_lm$SpeciesID == "MYSC"] <- "Sciaridae"
+
+df_summary_lm$Pheno_event <- factor(df_summary_lm$Pheno_event,                 # Relevel group factor
+                         levels = c("Onset", "Peak", "End", "Duration"))
+
+df_summary_lm$SpeciesID <- factor(df_summary_lm$SpeciesID,                 # Relevel group factor
+                            levels = c("Chironomidae", "Linyphiidae", "Sciaridae", "Lycosidae", "Collembola", "Muscidae", 
+                                       "Acari", "Thomisidae", "Culicidae", "Ichneumonidae", "Coccoidea", "Nymphalidae", "Phoridae", "Chalcidoidea", "Aphidoidea"))
+
+df_summary_lm$Plot <- factor(df_summary_lm$Plot,                 # Relevel group factor
+                       levels = c("Plot 7", "Plot 6", "Plot 5", "Plot 4", "Plot 3", "Plot 2", "Plot 1"))
+
+```
+
+Then we make the figure.
+
+```{r}
+df8_Onset<- subset(df_summary_lm,Pheno_event=="Onset")
+df8_Peak<- subset(df_summary_lm,Pheno_event=="Peak")
+df8_End<- subset(df_summary_lm,Pheno_event=="End")
+df8_Duration<- subset(df_summary_lm,Pheno_event=="Duration")
+
+
+
+Onset <- ggplot(df8_Onset, aes(x = Slope, y = Plot, color = Pvalue < 0.051 | Pvalue == 0.5))+
+  xlab("Phenological shift (days per year)")+
+  scale_color_manual(name = 'Pvalue < 0.05', values = setNames(c('red', 'blue'), c(T,F)))+
+  #scale_shape(guide = "none")+
+  geom_point(size = 3)+
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, y = Plot))+
+  facet_grid(SpeciesID ~ ., drop = TRUE, scales = "free_y", space = "free")+
+  theme(strip.text.y = element_blank(), panel.background = element_rect(fill = "white"), panel.spacing = unit(.08, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 0.5), axis.title.y = element_blank(),legend.position="none",
+        axis.title.x = element_blank(), plot.margin = unit(c(0.5,0.1,1,0.1), "cm"),
+        axis.text = element_text(size = 12))+
+  geom_vline(xintercept = 0)
+
+
+Peak <- ggplot(df8_Peak, aes(x = Slope, y = Plot, color = Pvalue < 0.051 | Pvalue == 0.5))+
+  xlab("Phenological shift (days per year)")+
+  scale_color_manual(name = 'Pvalue < 0.05', values = setNames(c('red', 'blue'), c(T,F)))+
+  #scale_shape(guide = "none")+
+  geom_point(size = 3)+
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, y = Plot))+
+  facet_grid(SpeciesID ~ ., drop = TRUE, scales = "free_y", space = "free")+
+  theme(strip.text.y = element_blank(), panel.background = element_rect(fill = "white"), panel.spacing = unit(.08, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 0.5), axis.title.y = element_blank(), 
+        axis.ticks.y = element_blank(), axis.text.y = element_blank(), legend.position="none",
+        axis.title.x = element_blank(), plot.margin = unit(c(0.5,0.1,1,0.1), "cm"),
+        axis.text = element_text(size = 12))+
+  geom_vline(xintercept = 0)
+
+
+End <- ggplot(df8_End, aes(x = Slope, y = Plot, color = Pvalue < 0.051 | Pvalue == 0.5))+
+  xlab("Phenological shift (days per year)")+
+  scale_color_manual(name = 'Pvalue < 0.05', values = setNames(c('red', 'blue'), c(T,F)))+
+  #scale_shape(guide = "none")+
+  geom_point(size = 3)+
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, y = Plot))+
+  facet_grid(SpeciesID ~ ., drop = TRUE, scales = "free_y", space = "free")+
+  theme(strip.text.y = element_blank(), panel.background = element_rect(fill = "white"), panel.spacing = unit(0.08, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 0.5), axis.title.y = element_blank(), 
+        axis.ticks.y = element_blank(), axis.text.y = element_blank(), legend.position="none",
+        axis.title.x = element_text(size = 15, hjust = -2.5, vjust = -2), plot.margin = unit(c(0.5,0.1,0.5,0.1), "cm"),
+        axis.text = element_text(size = 12))+
+  geom_vline(xintercept = 0)
+
+
+Duration <- ggplot(df8_Duration, aes(x = Slope, y = Plot, color = Pvalue < 0.051 | Pvalue == 0.5))+
+  xlab("Phenological shift (days per year)")+
+  scale_color_manual(name = 'Pvalue < 0.05', values = setNames(c('red', 'blue'), c(T,F)))+
+  #scale_shape(guide = "none")+
+  geom_point(size = 3)+
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, y = Plot))+
+  facet_grid(SpeciesID ~ ., drop = TRUE, scales = "free_y", space = "free")+
+  theme(strip.text.y = element_text(angle = 0), panel.background = element_rect(fill = "white"), panel.spacing = unit(.08, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 0.5), axis.title.y = element_blank(), 
+        axis.ticks.y = element_blank(), axis.text.y = element_blank(), legend.position="none",
+        axis.title.x = element_blank(), plot.margin = unit(c(0.5,0.1,1,0.1), "cm"),
+        axis.text = element_text(size = 12))+
+  geom_vline(xintercept = 0)
+
+
+ggarrange(Onset, Peak, End, Duration, labels = c("A) Onset", "B) Peak", "C) End", "D) Duration"), hjust = -0.1, vjust = 0.1, ncol = 4, nrow = 1)+
+  theme(plot.margin = margin(0.5,0.1,0.1,0.1, "cm"))
+
+```
+
+Save summary of linear regression in your data_summaries folder.
+
+```{r}
+require(writexl)
+
+write_xlsx(df_summary_lm, "Data/Dataset_summaries\\df_summary_temporal_linear_trends.xlsx", col_names = TRUE)
+```
