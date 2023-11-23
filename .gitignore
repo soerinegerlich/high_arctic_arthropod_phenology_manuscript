@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 Data/*
+**/Temporal_trends_files
+Temporal_trends.html
