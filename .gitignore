@@ -5,3 +5,4 @@
 Data/*
 **/Temporal_trends_files
 Temporal_trends.html
+*.rmarkdown
