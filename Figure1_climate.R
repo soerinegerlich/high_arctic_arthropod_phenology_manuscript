@@ -1,5 +1,10 @@
 #Figure 1 - Spring and Summer temperature as well as snowmelt timing
 
+required_packages <- c('ggplot2', 'readxl', 'dplyr')
+
+#load all packages at once
+lapply(required_packages, library, character.only=TRUE)
+
 dfair4 <- read.csv("Data\\Air_seasonal.csv", sep = ",", header = TRUE)
 dfsnowmelt_climatestation <- read_xlsx("Data/Snowmelt_climatestation.xlsx")
 

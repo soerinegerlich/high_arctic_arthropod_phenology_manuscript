@@ -784,6 +784,11 @@ ggarrange(Onset, Peak, End, Duration, labels = c("A) Onset", "B) Peak", "C) End"
 
 ```
 
+```{r output=TRUE}
+ggarrange(Onset, Peak, End, Duration, labels = c("A) Onset", "B) Peak", "C) End", "D) Duration"), hjust = -0.1, vjust = 0.1, ncol = 4, nrow = 1)+
+  theme(plot.margin = margin(0.5,0.1,0.1,0.1, "cm"))
+```
+
 Save summary of linear regression in your data_summaries folder.
 
 ```{r}

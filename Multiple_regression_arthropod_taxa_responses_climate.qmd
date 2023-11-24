@@ -1,0 +1,989 @@
+---
+title: "Multiple_regression_arthropods"
+author: "Hannah Sørine Gerlich"
+format: html
+editor: visual
+message: false
+warning: false
+output: false
+---
+
+## Analyses on the effect of temperature and snowmelt on high-arctic arthropod phenology
+
+This file contains all the code necessary to perform multiple regression modelling on the effect of temperature and snowmelt on each high-arctic arthropod phenology separately.
+
+Initially, we load all the relevant packages.
+
+```{r}
+pkgs <- c("tidyverse", "readxl", "corrplot", "stats", "lme4", "lmerTest", "car",
+          "sjPlot","MASS")
+
+vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
+       logical.return = TRUE)
+```
+
+Then read dataset with phenological metrics as well as air temperature estimates. The snowmelt data is in a separate csv file and we first have to bind the columns.
+
+```{r}
+df_phen_event <-
+  read.csv(
+    "Data/Pheno_air_temp.csv",
+    sep = ",",
+    stringsAsFactors = FALSE,
+    header = TRUE
+  )
+
+dfsnowmelt_climatestation <-
+  readxl::read_xlsx("Data/Snowmelt_climatestation.xlsx")
+
+df_phen_event$Snowmelt <-
+  dfsnowmelt_climatestation$DOY[match(paste0(df_phen_event$Year),
+                                      paste0(dfsnowmelt_climatestation$Year))]
+```
+
+```{r}
+df_phen_event %>%
+  mutate(Order = case_when(
+    SpeciesID == "Acari" ~ "Decomposer",
+    SpeciesID == "ANMU" ~ "Mixed feeder",
+    SpeciesID == "Aphidoidea" ~ "Herbivor",
+    SpeciesID == "Chalcidoidea" ~ "Parasitoid",
+    SpeciesID == "CHCE" ~ "Mixed feeder",
+    SpeciesID == "Coccoidea" ~ "Herbivor",
+    SpeciesID == "Collembola" ~ "Decomposer",
+    SpeciesID == "Culicidae" ~ "Mixed feeder",
+    SpeciesID == "Ichneumonidae" ~ "Parasitoid",
+    SpeciesID == "Linyphiidae" ~ "Predator",
+    SpeciesID == "Lycosidae" ~ "Predator",
+    SpeciesID == "MYSC" ~ "Mixed feeder",
+    SpeciesID == "Nymphalidae" ~ "Mixed feeder",
+    SpeciesID == "Phoridae" ~ "Mixed feeder",
+    SpeciesID == "Scathophagidae" ~ "Mixed feeder",
+    SpeciesID == "Thomisidae" ~ "Predator")) -> df_phen_event
+
+df_phen_event %>%
+  mutate(Emerge = case_when(
+    SpeciesID == "Acari" ~ "Early",
+    SpeciesID == "ANMU" ~ "Late",
+    SpeciesID == "Aphidoidea" ~ "Late",
+    SpeciesID == "Chalcidoidea" ~ "Late",
+    SpeciesID == "CHCE" ~ "Early",
+    SpeciesID == "Coccoidea" ~ "Late",
+    SpeciesID == "Collembola" ~ "Early",
+    SpeciesID == "Culicidae" ~ "Late",
+    SpeciesID == "Ichneumonidae" ~ "Late",
+    SpeciesID == "Linyphiidae" ~ "Early",
+    SpeciesID == "Lycosidae" ~ "Early",
+    SpeciesID == "MYSC" ~ "Early",
+    SpeciesID == "Nymphalidae" ~ "Late",
+    SpeciesID == "Phoridae" ~ "Late",
+    SpeciesID == "Scathophagidae" ~ "Late",
+    SpeciesID == "Thomisidae" ~ "Early")) -> df_phen_event
+
+df_phen_event %>%
+  mutate(Trait = case_when(
+    SpeciesID == "Acari" ~ "Surface",
+    SpeciesID == "ANMU" ~ "Flying",
+    SpeciesID == "Aphidoidea" ~ "Surface",
+    SpeciesID == "Chalcidoidea" ~ "Flying",
+    SpeciesID == "CHCE" ~ "Flying",
+    SpeciesID == "Coccoidea" ~ "Surface",
+    SpeciesID == "Collembola" ~ "Surface",
+    SpeciesID == "Culicidae" ~ "Flying",
+    SpeciesID == "Ichneumonidae" ~ "Flying",
+    SpeciesID == "Linyphiidae" ~ "Surface",
+    SpeciesID == "Lycosidae" ~ "Surface",
+    SpeciesID == "MYSC" ~ "Flying",
+    SpeciesID == "Nymphalidae" ~ "Flying",
+    SpeciesID == "Phoridae" ~ "Flying",
+    SpeciesID == "Scathophagidae" ~ "Flying",
+    SpeciesID == "Thomisidae" ~ "Surface")) -> df_phen_event
+```
+
+We find strong collinearity between temperature and snowmelt for families in the snowbed plot (Art6) and Nymphalidae in one mesic heath plot (Art3). Therefore, we have to remove these observations from the data.
+
+```{r}
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art1" &
+                    (df_phen_event$Order == "Decomposer")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art6" &
+                    (df_phen_event$Order == "Decomposer")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art6" &
+                    (df_phen_event$Order == "Predator")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art1" &
+                    (df_phen_event$Order == "Predator")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art6" &
+                    (df_phen_event$Order == "Parasitoid")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art6" &
+                    (df_phen_event$Order == "Mixed feeder")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art3" &
+                    (df_phen_event$SpeciesID == "Nymphalidae")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$SpeciesID == "Lygaeidae"), ]
+
+df_phen_event <- subset(df_phen_event,!Plot == "Art6")
+```
+
+Assign habitat type.
+
+```{r}
+df_phen_event %>%
+  mutate(
+    Habitat = case_when(
+      Plot == "Art1" ~ "Pond",
+      Plot == "Art2" ~ "Wet fen",
+      Plot == "Art3" ~ "Mesic heath",
+      Plot == "Art4" ~ "Mesic heath",
+      Plot == "Art5" ~ "Arid heath",
+      Plot == "Art7" ~ "Arid heath"
+    )
+  ) -> df_phen_event
+```
+
+Remove taxa in the dataset for which we do not have enough data.
+
+```{r}
+df_phen_event$Order[is.na(df_phen_event$Order)] <- "NA"
+df_phen_event <- subset(df_phen_event, Order != "NA")
+```
+
+Multiple regression i then performed on each individual taxa. The best model is chosen based on AIC model comparison and anova results. This is also to test which climate variable is most important in determining each individual arthropod taxa phenology.
+
+Start with decomposers (Acari and Collembola).
+
+## Acari
+
+```{r}
+df_Acari <- subset(df_phen_event,SpeciesID=="Acari")
+df_Acari%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Acari
+```
+
+We are also interested in comparing responses among habitats. To do this with Plot as a categorical variable, we use costumized contrasts to specify which habitats we want to compare.
+
+```{r}
+unique(df_Acari$Plot)
+#Plot 2 (wet fen), Plot 3, 4 (mesic heath) and Plot 5, 7 (arid heath)
+
+df_Acari$Plot <- as.factor(df_Acari$Plot)
+
+
+#mycontrasts = contrasts(df_CHCE$Plot)
+
+#S <- cbind(1, contrasts(df_CHCE$Plot))
+#L <- ginv(S)
+#L %>% fractions()
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H1, H2) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Acari$Plot) <- S
+contrasts(df_Acari$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Acari)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Acari)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Acari)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Acari)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Acari)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Acari)
+
+ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_acari
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+The results for Acari show no effect of snowmelt or temperature on peak phenology. There are differences in phenological responses to climate variables among habitats, though.
+
+```{r output=TRUE}
+tbl_regression(multiple_lm1)
+```
+
+```{r}
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Acari$Plot) <- S
+contrasts(df_Acari$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Acari)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Acari)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Acari)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Acari)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Acari)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Acari)
+
+ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_acari
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+## Collembola
+
+```{r}
+df_Collembola <- subset(df_phen_event,SpeciesID=="Collembola")
+df_Collembola%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Collembola
+
+unique(df_Collembola$Plot)
+#Plot 2 (wet fen), Plot 3, 4 (mesic heath) and Plot 5, 7 (arid heath)
+
+df_Collembola$Plot <- as.factor(df_Collembola$Plot)
+
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H1, H2) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Collembola$Plot) <- S
+contrasts(df_Collembola$Plot)
+
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Collembola)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Collembola)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Collembola)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Collembola)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Collembola)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Collembola)
+
+ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Collembola
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+The best model is with plot and temperature as well as snowmelt interactions.
+
+```{r output=TRUE}
+tbl_regression(multiple_lm4)
+```
+
+```{r}
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Collembola$Plot) <- S
+contrasts(df_Collembola$Plot)
+
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Collembola)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Collembola)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Collembola)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Collembola)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Collembola)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Collembola)
+
+ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Collembola
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r output=TRUE}
+tbl_regression(multiple_lm4)
+```
+
+The phenological responses to climate variables differ between mesic heath and arid heath habitats.
+
+# Herbivores
+
+## Aphidoidea
+
+We only have phenological metrics for plot 7 and therefore the sutomized constrasting is not relevant here.
+
+```{r}
+df_APHI <- subset(df_phen_event,SpeciesID=="Aphidoidea")
+df_APHI%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_APHI
+
+multiple_lm0a <- lm(Peak ~ Snowmelt+Year, df_APHI)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Year, df_APHI)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_APHI)
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+The effect of climate variables on aphidoidea phenology is not strong.
+
+## Coccoidea
+
+```{r}
+df_Cocco <- subset(df_phen_event,SpeciesID=="Coccoidea")
+df_Cocco%>%
+  subset(!is.na(Onset_Temp30)&!is.na(Onset)) -> df_Cocco
+
+unique(df_Cocco$Plot)
+#Plot 3, 4 (mesic heath) and plot 5, 7 (arid heath)
+
+df_Cocco$Plot <- as.factor(df_Cocco$Plot)
+
+
+H1 = c(1/2, 1/2, -1/2, -1/2)
+L <- rbind(H1) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Cocco$Plot) <- S
+contrasts(df_Cocco$Plot)
+
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Cocco)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Cocco)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Cocco)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Cocco)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Cocco)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Cocco)
+
+ancova_Cocco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Cocco
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r output=TRUE}
+tbl_regression(multiple_lm2)
+```
+
+Coccoidea exhibits strong earlier peak phenology in response to snowmelt.
+
+# Parasitoids
+
+## Chalcidoidea
+
+```{r}
+df_Chal <- subset(df_phen_event,SpeciesID=="Chalcidoidea")
+df_Chal%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Chal
+
+unique(df_Chal$Plot)
+#Plot 3, 4 (mesic heath) and plot 5, 7 (arid heath)
+
+df_Chal$Plot <- as.factor(df_Chal$Plot)
+
+H1 = c(1/2, 1/2, -1/2, -1/2)
+L <- rbind(H1) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Chal$Plot) <- S
+contrasts(df_Chal$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Chal)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Chal)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Chal)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Chal)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Chal)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Chal)
+
+ancova_Chal <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Chal
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+We find no differences among habitats. Snowmelt has a large effect on peak phenology.
+
+## Ichneumonidae
+
+We need to consider the random effect of trap type for Chironomoidae, because plot 1 is a window trap and this type of trap is substantially different from pitfall traps in the other plots.
+
+```{r}
+df_Ich <- subset(df_phen_event,SpeciesID=="Ichneumonidae")
+df_Ich%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Ich
+
+df_Ich%>%
+  mutate(Trap = case_when(
+    endsWith(Plot, "1") ~ "Window",
+    endsWith(Plot, "2") ~ "Pitfall",
+    endsWith(Plot, "3") ~ "Pitfall",
+    endsWith(Plot, "4") ~ "Pitfall",
+    endsWith(Plot, "5") ~ "Pitfall",
+    endsWith(Plot, "7") ~ "Pitfall"
+    )) -> df_Ich
+
+df_Ich$Trap <- as.factor(df_Ich$Trap) 
+df_Ich$Plot <- as.factor(df_Ich$Plot)
+
+
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H1, H2, H4) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Ich$Plot) <- S
+contrasts(df_Ich$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Ich)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Ich)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Ich)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Ich)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Ich)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Ich)
+
+multiple_trap_lm0a <- lmer(Peak ~ Snowmelt+Plot+Year+(1|Plot:Trap), df_Ich)
+multiple_trap_lm0b <- lmer(Peak ~ Peak_Temp30+Plot+Year+(1|Plot:Trap), df_Ich)
+multiple_trap_lm1 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+(1|Plot:Trap), df_Ich)
+multiple_trap_lm2 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+(1|Plot:Trap), df_Ich)
+multiple_trap_lm3 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot+(1|Plot:Trap), df_Ich)
+multiple_trap_lm4 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot+(1|Plot:Trap), df_Ich)
+
+ancova_Ich <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Ich
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+
+ancova_Ich <- anova(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+ancova_Ich
+
+AIC(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+```
+
+```{r output=TRUE}
+tbl_regression(multiple_lm1)
+```
+
+We find no differences among habitats. Snowmelt and temperature both have large effects on peak phenology.
+
+# Mixed feeders
+
+## Chironomidae
+
+We need to consider the random effect of trap type for Chironomoidae, because plot 1 is a window trap and this type of trap is substantially different from pitfall traps in the other plots.
+
+```{r}
+df_CHCE <- subset(df_phen_event,SpeciesID=="CHCE")
+df_CHCE%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_CHCE
+
+unique(df_CHCE$Plot)
+#Plot 1 (pond), plot 2, (wet fen), plot 3, 4 (mesic heath) and plot 5, 7 (arid heath)
+
+df_CHCE%>%
+  mutate(Trap = case_when(
+    endsWith(Plot, "1") ~ "Window",
+    endsWith(Plot, "2") ~ "Pitfall",
+    endsWith(Plot, "3") ~ "Pitfall",
+    endsWith(Plot, "4") ~ "Pitfall",
+    endsWith(Plot, "5") ~ "Pitfall",
+    endsWith(Plot, "7") ~ "Pitfall"
+    )) -> df_CHCE
+
+df_CHCE$Trap <- as.factor(df_CHCE$Trap) 
+df_CHCE$Plot <- as.factor(df_CHCE$Plot)
+
+#mycontrasts = contrasts(df_CHCE$Plot)
+
+#S <- cbind(1, contrasts(df_CHCE$Plot))
+#L <- ginv(S)
+#L %>% fractions()
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H1, H2, H4) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_CHCE$Plot) <- S
+contrasts(df_CHCE$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_CHCE)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_CHCE)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_CHCE)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_CHCE)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_CHCE)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_CHCE)
+
+multiple_trap_lm0a <- lmer(Peak ~ Snowmelt+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm0b <- lmer(Peak ~ Peak_Temp30+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm1 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm2 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm3 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm4 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot+(1|Plot:Trap), df_CHCE)
+
+ancova_CHCE <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_CHCE
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+
+ancova_CHCE <- anova(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+ancova_CHCE
+
+AIC(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+```
+
+```{r output=TRUE}
+tbl_regression(multiple_trap_lm1)
+```
+
+```{r}
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_CHCE$Plot) <- S
+contrasts(df_CHCE$Plot)
+```
+
+```{r}
+multiple_trap_lm0a <- lmer(Peak ~ Snowmelt+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm0b <- lmer(Peak ~ Peak_Temp30+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm1 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm2 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm3 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot+(1|Plot:Trap), df_CHCE)
+multiple_trap_lm4 <- lmer(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot+(1|Plot:Trap), df_CHCE)
+
+ancova_CHCE <- anova(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+ancova_CHCE
+
+AIC(multiple_trap_lm0a, multiple_trap_lm0b, multiple_trap_lm1, multiple_trap_lm2, multiple_trap_lm3, multiple_trap_lm4)
+```
+
+```{r output=TRUE}
+tbl_regression(multiple_trap_lm1)
+```
+
+## Muscidae
+
+There was no substantial variance explained from the random effect of trap type for Muscidae. Therefore, we do not consider it relevant to add this covariate in the model.
+
+```{r}
+df_ANMU <- subset(df_phen_event,SpeciesID=="ANMU")
+df_ANMU%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_ANMU
+
+unique(df_ANMU$Plot)
+
+#Plot 1 (pond), plot 2, (wet fen), plot 3, 4 (mesic heath) and plot 5, 7 (arid heath)
+
+
+df_ANMU$Plot <- as.factor(df_ANMU$Plot)
+
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H1, H2, H4) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_ANMU$Plot) <- S
+contrasts(df_ANMU$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_ANMU)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_ANMU)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_ANMU)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_ANMU)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_ANMU)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_ANMU)
+
+ancova_ANMU <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_ANMU
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+tbl_regression(multiple_trap_lm2)
+```
+
+```{r}
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_ANMU$Plot) <- S
+contrasts(df_ANMU$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_ANMU)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_ANMU)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_ANMU)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_ANMU)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_ANMU)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_ANMU)
+
+ancova_ANMU <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_ANMU
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+## Culicidae
+
+We only have phenological metrics for plot 1 and therefore the sutomized constrasting is not relevant here.
+
+```{r}
+df_culi <- subset(df_phen_event,SpeciesID=="Culicidae")
+df_culi%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_culi
+
+multiple_lm0a <- lm(Peak ~ Snowmelt+Year, df_culi)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Year, df_culi)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_culi)
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+Timing of snowmelt has a significant effect on earlier peak activity for Culicidae. The temperature variable was not significant, but still explained a substantial amount of variation in the model (model with both variables was preferred).
+
+## Sciaridae
+
+There was no substantial variance explained from the random effect of trap type for Sciaridae. Therefore, we do not consider it relevant to add this covariate in the model.
+
+```{r}
+
+df_MYSC <- subset(df_phen_event,SpeciesID=="MYSC")
+
+df_MYSC%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_MYSC
+
+unique(df_MYSC$Plot)
+
+df_MYSC$Plot <- as.factor(df_MYSC$Plot)
+
+
+#mycontrasts = contrasts(df_ANMU$Plot)
+
+#S <- cbind(1, contrasts(df_ANMU$Plot))
+#L <- ginv(S)
+#L %>% fractions()
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H1, H2, H4) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_MYSC$Plot) <- S
+contrasts(df_MYSC$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_MYSC)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_MYSC)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_MYSC)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_MYSC)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_MYSC)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_MYSC)
+
+ancova_MYSC <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_MYSC
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+```{r}
+H1 = c(0, 0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(0, -1, 1/2, 1/2, 0, 0)
+H3 = c(0, 1, 0, 0, -1/2, -1/2)
+H4 = c(1, -1/5, -1/5, -1/5, -1/5, -1/5)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_MYSC$Plot) <- S
+contrasts(df_MYSC$Plot)
+```
+
+```{r}
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_MYSC)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+Sciaridae responded strongly to timing of snowmelt and temperature. A simple model with no interactions was preferred, however, we did find differences between early and late snow melting habitats.
+
+## Phoridae
+
+```{r}
+df_Phori <- subset(df_phen_event,SpeciesID=="Phoridae")
+df_Phori%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Phori
+
+unique(df_Phori$Plot)
+#Plot 3, 4 (mesic heath) and plot 5, 7 (arid heath)
+
+df_Phori$Plot <- as.factor(df_Phori$Plot)
+
+
+#mycontrasts = contrasts(df_ANMU$Plot)
+
+#S <- cbind(1, contrasts(df_ANMU$Plot))
+#L <- ginv(S)
+#L %>% fractions()
+H1 = c(1/2, 1/2, -1/2, -1/2)
+L <- rbind(H1) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Phori$Plot) <- S
+contrasts(df_Phori$Plot)
+
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Phori)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Phori)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Phori)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Phori)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Phori)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Phori)
+
+ancova_Phori <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Phori
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+There is a strong effect of timing of snowmelt on earlier phoridae peak phenology, and there is also a negative effect of temperature, but the estimate is not significant.
+
+## Nymphalidae
+
+```{r}
+df_Nymph <- subset(df_phen_event,SpeciesID=="Nymphalidae")
+df_Nymph%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Nymph
+
+multiple_lm0a <- lm(Peak ~ Snowmelt+Year, df_Nymph)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Year, df_Nymph)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_Nymph)
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+# Predators
+
+## Linyphiidae
+
+```{r}
+df_Liny <- subset(df_phen_event,SpeciesID=="Linyphiidae")
+df_Liny%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Liny
+
+df_Liny$Plot <- as.factor(df_Liny$Plot)
+
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+#H4 = c(-1/5, -1/5, -1/5, -1/5, 1, -1/5)
+L <- rbind(H1, H2) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Liny$Plot) <- S
+contrasts(df_Liny$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Liny)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Liny)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Liny)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Liny)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Liny)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Liny)
+
+ancova_Liny <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Liny
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+#H4 = c(-1/5, -1/5, -1/5, -1/5, 1, -1/5)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Liny$Plot) <- S
+contrasts(df_Liny$Plot)
+```
+
+```{r}
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Liny)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+Linyphiidae is the only taxa to show a delayed peak activity in response to earlier snowmelt.
+
+## Lycosidae
+
+```{r}
+df_Lyco <- subset(df_phen_event,SpeciesID=="Lycosidae")
+df_Lyco%>%
+  subset(!is.na(Onset_Temp30)&!is.na(Onset)) -> df_Lyco
+
+df_Lyco$Plot <- as.factor(df_Lyco$Plot)
+
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H1, H2) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Lyco$Plot) <- S
+contrasts(df_Lyco$Plot)
+```
+
+```{r}
+multiple_lm0a <- lm(Peak ~ Snowmelt+Plot+Year, df_Lyco)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Plot+Year, df_Lyco)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Lyco)
+multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Lyco)
+multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Lyco)
+multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Lyco)
+
+ancova_Lyco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Lyco
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+```
+
+```{r}
+H1 = c(0, 1/2, 1/2, -1/2, -1/2)
+H2 = c(-1, 1/2, 1/2, 0, 0)
+H3 = c(1, 0, 0, -1/2, -1/2)
+L <- rbind(H3) # bind the rows together
+L %>% fractions()
+S <- ginv(L) # compute the inverse
+S 
+
+contrasts(df_Lyco$Plot) <- S
+contrasts(df_Lyco$Plot)
+```
+
+```{r}
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Lyco)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+Lycosidae responds strongly to earlier snowmelt and increased temperatures in peak phenology.
+
+## Thomisidae
+
+```{r}
+df_Thomi <- subset(df_phen_event,SpeciesID=="Thomisidae")
+df_Thomi%>%
+  subset(!is.na(Peak_Temp30)&!is.na(Peak)) -> df_Thomi
+
+multiple_lm0a <- lm(Peak ~ Snowmelt+Year, df_Thomi)
+multiple_lm0b <- lm(Peak ~ Peak_Temp30+Year, df_Thomi)
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_Thomi)
+
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1)
+```
+
+```{r}
+multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_Thomi)
+```
+
+```{r}
+tbl_regression(multiple_lm1)
+```
+
+No strong effect of climate variables on peak phenology.
