@@ -186,11 +186,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Acari)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Acari)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Acari)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Acari)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Acari)
 
-ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_acari
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 The results for Acari show no effect of snowmelt or temperature on peak phenology. There are differences in phenological responses to climate variables among habitats, though.
@@ -219,11 +220,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Acari)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Acari)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Acari)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Acari)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Acari)
 
-ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_acari <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_acari
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ## Collembola
@@ -258,11 +260,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Collembola)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Collembola)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Collembola)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Collembola)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Collembola)
 
-ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Collembola
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 The best model is with plot and temperature as well as snowmelt interactions.
@@ -292,11 +295,13 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Collembola)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Collembola)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Collembola)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Collembola)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Collembola)
 
-ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+
+ancova_Collembola <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Collembola
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r output=TRUE}
@@ -319,8 +324,9 @@ df_APHI%>%
 multiple_lm0a <- lm(Peak ~ Snowmelt+Year, df_APHI)
 multiple_lm0b <- lm(Peak ~ Peak_Temp30+Year, df_APHI)
 multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Year, df_APHI)
+multiple_lm2 <- lm(Peak ~ Snowmelt*Peak_Temp30+Year, df_APHI)
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2)
 ```
 
 ```{r}
@@ -360,11 +366,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Cocco)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Cocco)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Cocco)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Cocco)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Cocco)
 
-ancova_Cocco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Cocco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Cocco
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r output=TRUE}
@@ -404,11 +411,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Chal)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Chal)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Chal)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Chal)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30+Plot+Year, df_Chal)
 
-ancova_Chal <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Chal <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Chal
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r}
@@ -628,11 +636,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_ANMU)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_ANMU)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_ANMU)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_ANMU)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30*Plot+Year, df_ANMU)
 
-ancova_ANMU <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_ANMU <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_ANMU
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r output=TRUE}
@@ -867,11 +876,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Liny)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Liny)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Liny)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Liny)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30*Plot+Year, df_Liny)
 
-ancova_Liny <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Liny <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Liny
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r}
@@ -926,11 +936,12 @@ multiple_lm1 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year, df_Lyco)
 multiple_lm2 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot, df_Lyco)
 multiple_lm3 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Peak_Temp30:Plot, df_Lyco)
 multiple_lm4 <- lm(Peak ~ Snowmelt+Peak_Temp30+Plot+Year+Snowmelt:Plot+Peak_Temp30:Plot, df_Lyco)
+multiple_lm5 <- lm(Peak ~ Snowmelt*Peak_Temp30*Plot+Year, df_Lyco)
 
-ancova_Lyco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+ancova_Lyco <- anova(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ancova_Lyco
 
-AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4)
+AIC(multiple_lm0a, multiple_lm0b, multiple_lm1, multiple_lm2, multiple_lm3, multiple_lm4, multiple_lm5)
 ```
 
 ```{r}

@@ -134,12 +134,9 @@ df3 %>%
 
 #Final dataframe is df_snow. Save file
 
-
-#write.csv(df_snow, file = "Data/Snowmelt_TemperatureData.csv", row.names =
-            #FALSE)
 #write_xlsx(
   #df_snow,
-  #"Data/Climate_data_Zackenberg\\Snowmelt_TemperatureData.xlsx",
+  #"Data\\Snowmelt_TemperatureData.xlsx",
   #col_names = TRUE
 #)
 
@@ -151,7 +148,7 @@ df_temp <-
     header = TRUE
   )
 dfsnowmelt_climatestation <-
-  readxl::read_xlsx("Data/Snowmelt_Climatestation.xlsx")
+  readxl::read_xlsx("Data/Snowmelt_snowmeltDOY_temperature_censor.xlsx")
 
 dfsnowmelt_climatestation <-
   subset(dfsnowmelt_climatestation, Year != "1996")
@@ -167,8 +164,8 @@ ggplot(dfsnowmelt_climatestation, aes(DOY, SnowmeltDOY)) +
   geom_abline(intercept = 0, slope = 1) +
   scale_x_continuous(breaks = c(150, 160, 170, 180, 190, 200)) +
   scale_y_continuous(breaks = c(150, 160, 170, 180, 190, 200)) +
-  ylab("Snowmelt timing from snow depth censor") +
-  xlab("Snowmelt timing from soil temperature") +
+  xlab("Snowmelt timing from snow depth censor") +
+  ylab("Snowmelt timing from soil temperature") +
   theme(
     panel.background = element_rect(fill = "white"),
     axis.title.y = element_text(

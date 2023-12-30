@@ -20,7 +20,7 @@ Initially, we have to load all relevant libraries.
 
 ```{r}
 pkgs <- c("tidyverse", "readxl", "corrplot", "stats", "ggpubr", "lme4", "car",
-          "gtsummary","broom.mixed")
+          "lmerTest", "gtsummary","broom.mixed")
 
 vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
        logical.return = TRUE)

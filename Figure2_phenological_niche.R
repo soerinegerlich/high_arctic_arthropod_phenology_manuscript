@@ -40,7 +40,7 @@ df_phenology$SpeciesID[df_phenology$SpeciesID == "CHCE"] <-
   "Chironomidae"
 df_phenology$SpeciesID[df_phenology$SpeciesID == "ANMU"] <-
   "Muscidae"
-df_phenology$SpeciesID[ddf_phenology$SpeciesID == "MYSC"] <-
+df_phenology$SpeciesID[df_phenology$SpeciesID == "MYSC"] <-
   "Sciaridae"
 
 
@@ -151,7 +151,7 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
   )) +
   scale_y_discrete(expand = expansion(add = 1)) +
   force_panelsizes(rows = unit(unit(c(
-    3, 3, 3, 3, 2, 3, 1, 3, 3, 3, 3, 3, 2, 2, 2
+    3, 3, 3, 3, 2, 3, 3, 1, 3, 3, 3, 3, 2, 2, 2
   ), "cm")),
   TRUE) +
   theme(
@@ -163,8 +163,9 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
     axis.text.y = element_blank(),
     axis.text.x = element_text(size = 22),
     axis.ticks.y = element_blank(),
-    axis.title.x = element_text(vjust = -1, size = 25),
-    legend.text = element_text(size = 20),
-    legend.title = element_text(size = 20),
-    strip.background = element_rect(colour = "black", fill = "white")
+    axis.title.x = element_text(vjust = -1, size = 28),
+    legend.text = element_text(size = 22),
+    legend.title = element_text(size = 22),
+    strip.background = element_rect(colour = "black", fill = "white"),
+    plot.margin = margin(t = 3, r = 3, b = 3, l = 5, unit = "cm")
   )
