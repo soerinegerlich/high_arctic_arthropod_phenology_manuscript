@@ -134,35 +134,47 @@ df_functional_group$Slope <- Slope
 df_functional_group$SE <- SE
 df_functional_group$Pvalue <- Pvalue
 
+df_functional_group$Pheno_event <-
+  factor(df_functional_group$Pheno_event,
+         # Relevel group factor
+         levels = c("Peak", "Duration"))
 
-Snowmelt <- ggplot(df_functional_group, aes(Order, Slope))+ 
+df_functional_group$Order <-
+  factor(df_functional_group$Order,
+         # Relevel group factor
+         levels = c("Predator", "Parasitoid", "Mixed feeder", "Herbivore", "Decomposer"))
+
+
+Snowmelt <- ggplot(df_functional_group, aes(Slope, Order))+ 
   #facet_grid(~N) +
-  ylab("Phenological response (days/snowmelt day)")+
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray", size = 1)+
+  xlab("Phenological response (days/shifted snowmelt day)")+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
   #xlab("Temperature")+
-  ylim(-1,1)+
-  geom_point(aes(color = Order, fill = Order, shape = Order),size = 5, alpha = 0.7, stroke = 1) +
-  geom_errorbar(aes(ymin=Slope-SE, ymax=Slope+SE, color = Order), size = 1, width = 0.10)+
+  #xlim(-0.7,0.7)+
+  geom_point(aes(color = Order, fill = Order),size = 8, alpha = 0.7, stroke = 1) +
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, color = Order), size = 1, width = 0.10)+
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   facet_grid(cols = vars(Pheno_event), drop = TRUE, scales = "free_y", space = "free")+
+  scale_x_continuous(breaks = c(-0.4,0,0.4))+
   #scale_colour_manual(values=c("white", "black"))+
   scale_fill_viridis(discrete = TRUE)+
   scale_color_viridis(discrete = TRUE)+
-  scale_shape_manual(values = c(22, 21, 24, 23, 25)) +
+  coord_cartesian(xlim=c(-0.5, 0.5))+
+  #scale_shape_manual(values = c(22, 21, 24, 23, 25)) +
   theme_bw()+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.y = element_text(vjust = 2, size = 15, color = "black"),
-        axis.text.y = element_text(size = 15, color = "black"),
-        axis.ticks.x = element_blank(),
+  theme(axis.title.x = element_text(vjust = -2, size = 20, color = "black"),
+        axis.text.x = element_text(size = 20, color = "black"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 20, color = "black"),
         axis.line = element_line(color = "black"),
         legend.position = "none",
-        plot.margin = margin(3,2,0,4, "cm"),
+        plot.margin = margin(1,1,1,1.3, "cm"),
         strip.background =element_rect(fill="white"),
-        strip.text.x = element_text(size = 15, color = "black"))
+        strip.text.x = element_text(size = 20, color = "black"),
+        panel.spacing=unit(1,"lines"))
 
 
-#Peak activity
+#Temperature
 
 Order <- c("Decomposer", "Herbivore", "Parasitoid", "Mixed feeder", "Predator", 
            "Decomposer", "Herbivore", "Parasitoid", "Mixed feeder", "Predator")
@@ -175,47 +187,56 @@ SE <- c(0.97, 1.45, 0.75, 1.15, 1.08,
         0.76, 1.32, 0.55, 1.18, 0.75)
 Pvalue <- c(0.001, 0.001, 0.01, 0.001, 0.001, 0.06, 0.40, 0.48, 0.002, 0.09)
 
-df_functional_group <- as.data.frame(Order)
-df_functional_group$Pheno_event <- Pheno_event
-df_functional_group$Slope <- Slope
-df_functional_group$SE <- SE
-df_functional_group$Pvalue <- Pvalue
+df_functional_group_temp <- as.data.frame(Order)
+df_functional_group_temp$Pheno_event <- Pheno_event
+df_functional_group_temp$Slope <- Slope
+df_functional_group_temp$SE <- SE
+df_functional_group_temp$Pvalue <- Pvalue
 
+df_functional_group_temp$Pheno_event <-
+  factor(df_functional_group_temp$Pheno_event,
+         # Relevel group factor
+         levels = c("Peak", "Duration"))
 
-Temperature <- ggplot(df_functional_group, aes(Order, Slope))+ 
+df_functional_group_temp$Order <-
+  factor(df_functional_group_temp$Order,
+         # Relevel group factor
+         levels = c("Predator", "Parasitoid", "Mixed feeder", "Herbivore", "Decomposer"))
+
+Temperature <- ggplot(df_functional_group_temp, aes(Slope, Order))+ 
   #facet_grid(~N) +
-  ylab("Phenological response (days/°C)")+
-  xlab("")+
+  xlab("Phenological response (days/°C)")+
+  ylab("")+
   #ylim(-3.5,3.5)+
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Order, fill = Order, shape = Order),size = 5, alpha = 0.7, stroke = 1) +
-  geom_errorbar(aes(ymin=Slope-SE, ymax=Slope+SE, color = Order), size = 1, width = 0.10)+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
+  geom_point(aes(color = Order, fill = Order),size = 8, alpha = 0.7, stroke = 1) +
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, color = Order), size = 1, width = 0.10)+
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
-  scale_y_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
+  scale_x_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
   facet_grid(cols = vars(Pheno_event), drop = TRUE, scales = "free_y", space = "free")+
   #scale_colour_manual(values=c("white", "black"))+
   scale_fill_viridis(discrete = TRUE)+
   scale_color_viridis(discrete = TRUE)+
-  scale_shape_manual(values = c(22, 21, 24, 23, 25)) +
+  #scale_shape_manual(values = c(22, 21, 24, 23, 25)) +
   theme_bw()+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.y = element_text(vjust = 2, size = 15, color = "black"),
-        axis.text.y = element_text(size = 15, color = "black"),
-        axis.ticks.x = element_blank(),
+  theme(axis.title.x = element_text(vjust = -2, size = 20, color = "black"),
+        axis.text.x = element_text(size = 20, color = "black"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
         axis.line = element_line(color = "black"),
-        legend.key.size = unit(1, 'cm'),
-        legend.key.width = unit(2, 'cm'),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 15),
-        plot.margin = margin(3,0,0,0, "cm"),
+        legend.position = "none",
+        #legend.key.size = unit(1, 'cm'),
+        #legend.key.width = unit(2, 'cm'),
+        #legend.text = element_text(size = 14),
+        #legend.title = element_text(size = 16),
+        plot.margin = margin(1,4,1,2, "cm"),
         strip.background =element_rect(fill="white"),
-        strip.text.x = element_text(size = 15, color = "black"))
+        strip.text.x = element_text(size = 20, color = "black"),
+        panel.spacing=unit(1,"lines"))
 
 functional <- ggarrange(Snowmelt, Temperature, labels = c("(a)", "(b)"), 
-          hjust = c(-8.9,-1.5), vjust = 7, ncol = 2, nrow = 1,
-          font.label=list(color="black",size=14))
-
+          hjust = c(-6,-1.8), vjust = 1, ncol = 2, nrow = 1,
+          font.label=list(color="black",size=20))
 
 
 Trait <- c("Early", "Late", "Flying", "Surface", "Early", "Late", "Flying", "Surface")
@@ -235,34 +256,40 @@ df_trait$Trait <-
          # Relevel group factor
          levels = c("Early", "Late", "Flying", "Surface"))
 
-trait_snow <- ggplot(df_trait, aes(Trait, Slope_snow))+ 
+df_trait$Event <-
+  factor(df_trait$Event,
+         # Relevel group factor
+         levels = c("Peak", "Duration"))
+
+trait_snow <- ggplot(df_trait, aes(Slope_snow, Trait))+ 
   #facet_grid(~N) +
-  ylab("Phenological response (days/snowmelt day)")+
+  xlab("Phenological response (days/shifted snowmelt day)")+
   #xlab("")+
-  ylim(-0.4,0.55)+
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Trait, fill = Trait, shape = Trait),size = 5, alpha = 0.7, stroke = 1) +
-  geom_errorbar(aes(Trait, Slope_snow, ymin=Slope_snow-SE_snow, ymax=Slope_snow+SE_snow, color = Trait), size = 1, width = 0.10)+
+  #xlim(-0.7,0.7)+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
+  geom_point(aes(color = Trait, fill = Trait),size = 8, alpha = 0.7, stroke = 1) +
+  geom_errorbar(aes(Slope_snow, Trait, xmin=Slope_snow-SE_snow, xmax=Slope_snow+SE_snow, color = Trait), size = 1, width = 0.10)+
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
-  #scale_y_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
-  facet_grid(cols = vars(Event), drop = TRUE, scales = "free_y", space = "free")+
+  scale_x_continuous(breaks = c(-0.4,0,0.4))+
+  facet_grid(cols = vars(Event), drop = TRUE, scales = "free_x", space = "free")+
   #scale_colour_manual(values=c("white", "black"))+
-  scale_colour_manual(values=c("#453781FF", "#33638DFF", "#55C667FF", "#1F968BFF"))+
-  scale_fill_manual(values=c("#453781FF", "#33638DFF", "#55C667FF", "#1F968BFF"))+
-  scale_shape_manual(values = c(22, 21,23,24)) +
+  scale_colour_manual(values=c("#0D0887FF", "#A92395FF", "#F89441FF", "#FDC328FF"))+
+  scale_fill_manual(values=c("#0D0887FF", "#A92395FF", "#F89441FF", "#FDC328FF"))+
+  coord_cartesian(xlim=c(-0.5, 0.5))+
+  #scale_shape_manual(values = c(22,21,23,24)) +
   theme_bw()+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_text(vjust = 0.5, size = 15, color = "black", angle = 35),
-        axis.title.y = element_text(vjust = 3, size = 15, color = "black"),
-        axis.text.y = element_text(size = 15, color = "black"),
-        axis.ticks.x = element_blank(),
+  theme(axis.title.x = element_text(size = 20, color = "black", vjust = -2),
+        axis.text.x = element_text(size = 20, color = "black"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 20, color = "black"),
         axis.line = element_line(color = "black"),
         legend.position = "none",
         #legend.key.size = unit(1, 'cm'),
         #legend.key.width = unit(1, 'cm'),
-        plot.margin = margin(3,0.5,2,1, "cm"),
+        plot.margin = margin(1,1,1,3, "cm"),
         strip.background =element_rect(fill="white"),
-        strip.text.x = element_text(size = 15, color = "black"))
+        strip.text.x = element_text(size = 20, color = "black"),
+        panel.spacing=unit(1,"lines"))
 
 
 
@@ -283,45 +310,52 @@ df_trait_temp$Trait <-
          # Relevel group factor
          levels = c("Early", "Late", "Flying", "Surface"))
 
-trait_temp <- ggplot(df_trait_temp, aes(Trait, Slope_temp))+ 
+df_trait_temp$Event <-
+  factor(df_trait_temp$Event,
+         # Relevel group factor
+         levels = c("Peak", "Duration"))
+
+trait_temp <- ggplot(df_trait_temp, aes(Slope_temp, Trait))+ 
   #facet_grid(~N) +
-  ylab("Phenological response (days/°C)")+
+  xlab("Phenological response (days/°C)")+
   #xlab("")+
-  ylim(-3,1.5)+
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Trait, fill = Trait, shape = Trait),size = 5, alpha = 0.7, stroke = 1) +
-  geom_errorbar(aes(Trait, Slope_temp, ymin=Slope_temp-SE_temp, ymax=Slope_temp+SE_temp, color = Trait), size = 1, width = 0.10)+
+  #xlim(-3.5,3.5)+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
+  geom_point(aes(color = Trait, fill = Trait),size = 8, alpha = 0.7, stroke = 1) +
+  geom_errorbar(aes(Slope_temp, Trait, xmin=Slope_temp-SE_temp, xmax=Slope_temp+SE_temp, color = Trait), size = 1, width = 0.10)+
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   #scale_y_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
-  facet_grid(cols = vars(Event), drop = TRUE, scales = "free_y", space = "free")+
+  facet_grid(cols = vars(Event), drop = TRUE, scales = "free_x", space = "free")+
   #scale_colour_manual(values=c("white", "black"))+
-  scale_colour_manual(values=c("#453781FF", "#33638DFF", "#55C667FF", "#1F968BFF"))+
-  scale_fill_manual(values=c("#453781FF", "#33638DFF", "#55C667FF", "#1F968BFF"))+
-  scale_shape_manual(values = c(22, 21,23,24)) +
+  scale_x_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
+  scale_colour_manual(values=c("#0D0887FF", "#A92395FF", "#F89441FF", "#FDC328FF"))+
+  scale_fill_manual(values=c("#0D0887FF", "#A92395FF", "#F89441FF", "#FDC328FF"))+
+  #scale_shape_manual(values = c(22, 21,23,24)) +
   theme_bw()+
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_text(vjust = 0.5, size = 15, color = "black", angle = 35),
-        axis.title.y = element_text(vjust = 3, size = 15, color = "black"),
-        axis.text.y = element_text(size = 15, color = "black"),
-        axis.ticks.x = element_blank(),
+  theme(axis.title.x = element_text(size = 20, color = "black", vjust = -2),
+        axis.text.x = element_text(size = 20, color = "black"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
         axis.line = element_line(color = "black"),
         legend.position = "none",
         #legend.key.size = unit(1, 'cm'),
         #legend.key.width = unit(1, 'cm'),
-        plot.margin = margin(3,0.5,2,1, "cm"),
+        plot.margin = margin(1,4,1,2, "cm"),
         strip.background =element_rect(fill="white"),
-        strip.text.x = element_text(size = 15, color = "black"))
+        strip.text.x = element_text(size = 20, color = "black"),
+        panel.spacing=unit(1,"lines"))
 
 
 
 
 Trait_all <- ggarrange(trait_snow, trait_temp,
           labels = c("(c)", "(d)"),
-          hjust = c(-3.9,-2.9), vjust = 7,
-          nrow = 1, ncol = 2, font.label=list(color="black",size=14))
+          hjust = c(-6,-1.8), vjust = 1,
+          nrow = 1, ncol = 2, font.label=list(color="black",size=20))
 
 
-ggarrange(functional, Trait_all, ncol = 1, nrow = 2)
+ggarrange(functional, Trait_all, ncol = 1, nrow = 2) +
+  theme(plot.margin = margin(2,6,2,6, "cm"))
 
-
+#28 / 20
 
