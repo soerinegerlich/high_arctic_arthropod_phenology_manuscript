@@ -18,7 +18,7 @@ library(dplyr)
 #Read csv file
 df1 <-
   read.csv2(
-    "Data/View_BioBasis_Zackenberg_Data_Arthropods_Arthropod_emergence140920221552287525.csv",
+    "Data/phenology_data/View_BioBasis_Zackenberg_Data_Arthropods_Arthropod_emergence140920221552287525.csv",
     sep = "\t",
     stringsAsFactors = FALSE
   )
@@ -229,7 +229,7 @@ df2 %>%
 df_2010<-subset(df3,Year=="2010")
 #write_xlsx(df_2010, "Data/Pre_data\\df_2010.xlsx", col_names = TRUE)
 
-df3 <- read_excel("Data/Pre_data/df3.xlsx")
+df3 <- read_excel("Data/phenology_data/Pre_data/df3.xlsx")
 
 #Match corrected df3 with uncorrected df_2010 before manually correcting for mites and spider abundances
 df3 <- rbind(df3,df_2010)

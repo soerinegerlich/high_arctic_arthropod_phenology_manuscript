@@ -27,14 +27,14 @@ Then read dataset with phenological metrics as well as air temperature estimates
 ```{r}
 df_phen_event <-
   read.csv(
-    "Data/Pheno_air_temp.csv",
+    "Data/phenology_dataPheno_air_temp.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE
   )
 
 dfsnowmelt_climatestation <-
-  readxl::read_xlsx("Data/Snowmelt_climatestation.xlsx")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_climatestation.xlsx")
 
 df_phen_event$Snowmelt <-
   dfsnowmelt_climatestation$DOY[match(paste0(df_phen_event$Year),

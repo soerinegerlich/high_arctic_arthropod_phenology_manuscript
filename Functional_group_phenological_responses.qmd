@@ -25,14 +25,14 @@ vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
 ```{r}
 df_phen_event <-
   read.csv(
-    "Data/Pheno_air_temp.csv",
+    "Data/phenology_data/Pheno_air_temp.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE
   )
 
 dfsnowmelt_climatestation <-
-  readxl::read_xlsx("Data/Snowmelt_climatestation.xlsx")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_climatestation.xlsx")
 
 df_phen_event$Snowmelt <-
   dfsnowmelt_climatestation$DOY[match(paste0(df_phen_event$Year),

@@ -9,9 +9,9 @@ library(corrplot)
 library(writexl)
 
 
-df_2010 <- read_excel("Data/Pre_data/df_2010.xlsx")
+df_2010 <- read_excel("Data/phenology_data/Pre_data/df_2010.xlsx")
 
-df3 <- read_excel("Data/Pre_data/df3.xlsx")
+df3 <- read_excel("Data/phenology_data/Pre_data/df3.xlsx")
 
 #Match corrected df3 with uncorrected df_2010 before manually correcting for mites and spider abundances
 df3 <- rbind(df3,df_2010)
@@ -164,7 +164,7 @@ df1c <- subset(df1c, select = -c(E, F, G, H))
 #Data has been manually checked.
 #Read new excel file with corrected mite data
 
-df3 <- read_excel("Data/Pre_data/df3_new.xlsx")
+df3 <- read_excel("Data/phenology_data/Pre_data/df3_new.xlsx")
 
 #Correct for Lycosidae juvenile peaks
 df1_lyco <- subset(df1, SpeciesID == "Lycosidae")

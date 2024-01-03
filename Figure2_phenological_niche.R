@@ -5,7 +5,7 @@ library(ggh4x)
 library(viridis)
 
 df_phenology <- read.csv(
-  "Data/phenology_metrics.csv",
+  "Data/phenology_data/phenology_metrics.csv",
   sep = ",",
   stringsAsFactors = FALSE,
   header = TRUE

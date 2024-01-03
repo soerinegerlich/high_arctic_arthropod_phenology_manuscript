@@ -5,8 +5,8 @@ required_packages <- c('ggplot2', 'readxl', 'dplyr', 'ggpubr')
 #load all packages at once
 lapply(required_packages, library, character.only=TRUE)
 
-dfair4 <- read.csv("Data\\Air_seasonal.csv", sep = ",", header = TRUE)
-dfsnowmelt_climatestation <- read_xlsx("Data/Snowmelt_climatestation.xlsx")
+dfair4 <- read.csv("Data/temperature_data\\Air_seasonal.csv", sep = ",", header = TRUE)
+dfsnowmelt_climatestation <- read_xlsx("Data/snowmelt_data/Snowmelt_climatestation.xlsx")
 
 dfair4 %>%
   rename(Year = Year...1) -> dfair4

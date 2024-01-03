@@ -7,7 +7,7 @@ vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
 
 
 df_summary <-
-  readxl::read_xlsx("Data/Dataset_summaries/df_summary_all_air_detrend_ptd.xlsx")
+  readxl::read_xlsx("Data/phenology_data/Dataset_summaries/df_summary_all_air_detrend_ptd.xlsx")
 
 
 df_summary %>%

@@ -12,7 +12,7 @@ library(data.table)
 
 dfsnowdepth <-
   read.csv(
-    "Data/Snowcover_climatestation/data/View_ClimateBasis_Zackenberg_Data_Precipitation_Snow_depth_m130320221458115255.csv",
+    "Data/snowmelt_data/Snowcover_climatestation/data/View_ClimateBasis_Zackenberg_Data_Precipitation_Snow_depth_m130320221458115255.csv",
     sep = "\t",
     stringsAsFactors = FALSE,
     header = TRUE
@@ -20,7 +20,7 @@ dfsnowdepth <-
 
 #Timing of snowmelt in plots
 df1 <-
-  readxl::read_xlsx("Data/Snowmelt_Zackenberg.xlsx", sheet = "Sheet2")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_Zackenberg.xlsx", sheet = "Sheet2")
 
 #Correcting column names
 dfsnowdepth = dfsnowdepth %>% rename("SnowDepth" = "Snow.depth..m.")

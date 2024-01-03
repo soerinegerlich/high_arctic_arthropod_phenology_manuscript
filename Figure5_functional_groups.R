@@ -14,7 +14,7 @@ df_phen_event <-
   )
 
 dfsnowmelt_climatestation <-
-  readxl::read_xlsx("Data/Snowmelt_climatestation.xlsx")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_climatestation.xlsx")
 
 df_phen_event$Snowmelt <-
   dfsnowmelt_climatestation$DOY[match(paste0(df_phen_event$Year),

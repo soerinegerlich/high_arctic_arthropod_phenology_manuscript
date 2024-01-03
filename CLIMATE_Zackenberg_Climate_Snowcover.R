@@ -14,7 +14,7 @@ library(plotrix)
 
 dfsnow <-
   read.csv(
-    "Data/Snowcover/View_BioBasis_Zackenberg_Data_Abiotics_Snow_and_ice_cover131020211111435653.csv",
+    "Data/snowmelt_data/Snowcover/View_BioBasis_Zackenberg_Data_Abiotics_Snow_and_ice_cover131020211111435653.csv",
     sep = "\t",
     stringsAsFactors = FALSE,
     header = TRUE
@@ -22,7 +22,7 @@ dfsnow <-
 
 dfsnow2019 <-
   read.csv(
-    "Data/Snowcover/2019/SnowAndIceInPermanentPlots2019.csv",
+    "Data/snowmelt_data/Snowcover/2019/SnowAndIceInPermanentPlots2019.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE

@@ -1,7 +1,7 @@
 ####Script to calculate phenological events####
 
 #Read clean data
-df3 <- read_excel("Data/Pre_data/df3_clean_data.xlsx")
+df3 <- read_excel("Data/phenology/data/Pre_data/df3_clean_data.xlsx")
 
 df3$Abundance <- as.numeric(df3$Abundance)
 
@@ -200,7 +200,7 @@ df5$AbundancePTD[is.na(df5$AbundancePTD)] <- 0
 #df7<- read.csv("ZAC_all.csv")
 df7 <-
   read.csv2(
-    "Data/Dataset_for_GAM/EMdata_final_AbundancePTD.csv",
+    "Data/phenology_data/Dataset_for_GAM/EMdata_final_AbundancePTD.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE
@@ -488,7 +488,7 @@ dfOPEsub %>%
     MeanDOY = mean(DOY),
     MaxDOY = max(DOY)
   ) -> dfOPEsub
-write.table(dfOPEsub, file = "Data/Dataset_for_GAM_NEW\\OPE_mmm_ptd.txt", sep = "\t")
+write.table(dfOPEsub, file = "Data/phenology_data/Dataset_for_GAM_NEW\\OPE_mmm_ptd.txt", sep = "\t")
 
 sort(unique(dfOPE$SpeciesID))
 
@@ -512,13 +512,13 @@ df8sub$Year <- as.factor(df8sub$Year)
 #Lastly, all scripts are saved
 
 
-write.csv(df8, file = "Data/Dataset_for_GAM_NEW\\duration_ptd.csv", 
+write.csv(df8, file = "Data/phenology_data/Dataset_for_GAM_NEW\\duration_ptd.csv", 
           row.names = FALSE)
 write.csv(df8sub, 
-          file = "Data/Dataset_for_GAM_NEW\\duration_subset_ptd.csv", 
+          file = "Data/phenology_data/Dataset_for_GAM_NEW\\duration_subset_ptd.csv", 
           row.names = FALSE)
 write.table(df8sub,
-            file = "Data/Dataset_for_GAM_NEW\\duration_subset_ptd.txt",
+            file = "Data/phenology_data/Dataset_for_GAM_NEW\\duration_subset_ptd.txt",
             sep = "\t",
             row.names = FALSE)
 

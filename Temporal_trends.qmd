@@ -30,7 +30,7 @@ vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
 Then read the dataset called duration.csv
 
 ```{r}
-df_phenology <- read.csv("Data/phenology_metrics.csv", sep=",",stringsAsFactors = FALSE, header = TRUE)
+df_phenology <- read.csv("Data/phenology_data/phenology_metrics.csv", sep=",",stringsAsFactors = FALSE, header = TRUE)
 ```
 
 The dataset is missing information on functional groups and we therefore have to add this. The column is called **order**. The dataset also includes phenology metrics for Acari and Collembola in Plot 1, but this is a window trap and we don't consider these traps relevant for sampling soil organisms. Therefore remove this. We also remove Scathophagidae because we don't have a sufficient number of years for this family.
