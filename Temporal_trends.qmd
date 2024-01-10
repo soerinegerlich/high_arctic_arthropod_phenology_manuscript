@@ -1,7 +1,7 @@
 ---
 title: "Temporal trends in high-arctic arthropod phenology"
 author: "Hannah Sørine Gerlich"
-format: html
+format: docx
 editor: visual
 message: false
 warning: false
@@ -794,5 +794,5 @@ Save summary of linear regression in your data_summaries folder.
 ```{r}
 require(writexl)
 
-write_xlsx(df_summary_lm, "Data/Dataset_summaries\\df_summary_temporal_linear_trends.xlsx", col_names = TRUE)
+#write_xlsx(df_summary_lm, "Data/Dataset_summaries\\df_summary_temporal_linear_trends.xlsx", col_names = TRUE)
 ```

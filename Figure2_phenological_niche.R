@@ -3,6 +3,7 @@
 library(splitstackshape)
 library(ggh4x)
 library(viridis)
+library(tidyverse)
 
 df_phenology <- read.csv(
   "Data/phenology_data/phenology_metrics.csv",
@@ -112,8 +113,8 @@ df_Peak$Plot <-
          levels = c("Plot 7", "Plot 6", "Plot 5", "Plot 4", "Plot 3", "Plot 2", "Plot 1"))
 
 df_Peak$SpeciesID <- factor(df_Peak$SpeciesID,                 # Relevel group factor
-                           levels = c("Chironomidae", "Linyphiidae", "Sciaridae", "Thomisidae", "Lycosidae", "Collembola", "Muscidae", "Culicidae", 
-                                      "Acari", "Ichneumonidae", "Coccoidea", "Nymphalidae", "Phoridae", "Aphidoidea", "Chalcidoidea"))
+                           levels = c("Chironomidae", "Linyphiidae", "Sciaridae", "Thomisidae", "Lycosidae", "Collembola", "Muscidae", 
+                                      "Acari", "Culicidae", "Ichneumonidae", "Coccoidea", "Nymphalidae", "Phoridae", "Aphidoidea", "Chalcidoidea"))
 
 df_Peak$Habitat <-
   factor(df_Peak$Habitat,
@@ -131,7 +132,7 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
     shape = Habitat,
     fill = Habitat
   ),
-  size = 5,
+  size = 3,
   na.rm = TRUE) +
   xlab("Day of Year")+
   #geom_text(aes(label = round(SE, digits = 2)), hjust=-1, vjust=-0.2)+
@@ -148,24 +149,26 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
     xmax = DOY + SE,
     y = Plot,
     color = Habitat,
+    width = 0.10
   )) +
-  scale_y_discrete(expand = expansion(add = 1)) +
+  #scale_y_discrete(expand = expansion(add = 1)) +
   force_panelsizes(rows = unit(unit(c(
-    3, 3, 3, 3, 2, 3, 3, 1, 3, 3, 3, 3, 2, 2, 2
+    2, 2, 2, 1, 2, 2, 2, 2, 0.5, 2, 2, 2, 2, 1, 1
   ), "cm")),
   TRUE) +
   theme(
-    strip.text.y = element_text(angle = 0, size = 20),
+    strip.text.y = element_text(angle = 0, size = 10),
     panel.background = element_rect(fill = "white"),
-    panel.spacing = unit(.3, "lines"),
+    panel.spacing = unit(.1, "lines"),
     panel.border = element_rect(color = "grey60", fill = NA),
     axis.title.y = element_blank(),
     axis.text.y = element_blank(),
-    axis.text.x = element_text(size = 22),
+    axis.text.x = element_text(size = 10),
     axis.ticks.y = element_blank(),
-    axis.title.x = element_text(vjust = -1, size = 28),
-    legend.text = element_text(size = 22),
-    legend.title = element_text(size = 22),
+    axis.title.x = element_text(vjust = -1, size = 12),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
     strip.background = element_rect(colour = "black", fill = "white"),
-    plot.margin = margin(t = 3, r = 3, b = 3, l = 5, unit = "cm")
+    plot.margin = margin(t = 3, r = 1, b = 3, l = 2, unit = "cm")
   )
+

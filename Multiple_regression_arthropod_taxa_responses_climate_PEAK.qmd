@@ -63,14 +63,14 @@ df_phen_event %>%
 
 df_phen_event %>%
   mutate(Emerge = case_when(
-    SpeciesID == "Acari" ~ "Early",
+    SpeciesID == "Acari" ~ "Late",
     SpeciesID == "ANMU" ~ "Late",
     SpeciesID == "Aphidoidea" ~ "Late",
     SpeciesID == "Chalcidoidea" ~ "Late",
     SpeciesID == "CHCE" ~ "Early",
     SpeciesID == "Coccoidea" ~ "Late",
     SpeciesID == "Collembola" ~ "Early",
-    SpeciesID == "Culicidae" ~ "Late",
+    SpeciesID == "Culicidae" ~ "Early",
     SpeciesID == "Ichneumonidae" ~ "Late",
     SpeciesID == "Linyphiidae" ~ "Early",
     SpeciesID == "Lycosidae" ~ "Early",

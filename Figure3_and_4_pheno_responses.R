@@ -37,16 +37,16 @@ df_Duration <- subset(df_summary, Pheno_event == "Duration")
 
 
 df_Onset$SpeciesID <- factor(df_Onset$SpeciesID,                 # Relevel group factor
-                             levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Acari", "Culicidae",
+                             levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Culicidae", "Acari",
                                         "Muscidae", "Collembola", "Lycosidae", "Thomisidae", "Sciaridae", "Linyphiidae", "Chironomidae"))
 df_Peak$SpeciesID <- factor(df_Peak$SpeciesID,                 # Relevel group factor
-                            levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Acari", "Culicidae",
+                            levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Culicidae", "Acari",
                                        "Muscidae", "Collembola", "Lycosidae", "Thomisidae", "Sciaridae", "Linyphiidae", "Chironomidae"))
 df_End$SpeciesID <- factor(df_Peak$SpeciesID,                 # Relevel group factor
-                           levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Acari", "Culicidae",
+                           levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Culicidae", "Acari",
                                       "Muscidae", "Collembola", "Lycosidae", "Thomisidae", "Sciaridae", "Linyphiidae", "Chironomidae"))
 df_Duration$SpeciesID <- factor(df_Duration$SpeciesID,                 # Relevel group factor
-                                levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Acari", "Culicidae",
+                                levels = c("Chalcidoidea", "Aphidoidea", "Phoridae", "Nymphalidae", "Coccoidea", "Ichneumonidae", "Culicidae", "Acari",
                                            "Muscidae", "Collembola", "Lycosidae", "Thomisidae", "Sciaridae", "Linyphiidae", "Chironomidae"))
 
 df_Onset$Habitat <- factor(df_Onset$Habitat,                 # Relevel group factor
@@ -67,7 +67,7 @@ Onset <- ggplot(df_Onset, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = 
   ylab("")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), alpha = 0.5, position = position_dodge(width = 0.5))+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -77,9 +77,10 @@ Onset <- ggplot(df_Onset, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = 
   #scale_color_viridis_d(guide = "none")+
   geom_vline(xintercept = 0)+
   theme(panel.background = element_rect(fill = "white"), panel.spacing = unit(1, "lines"),
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), strip.text.x = element_text(angle = 0, size = 15, color = "black"),
-        axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = 0.5), 
-        axis.text.y = element_text(face = "bold", size = 15, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2),
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), 
+        strip.text.x = element_text(angle = 0, size = 12, color = "black"),
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = 0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2),
         strip.background = element_rect(colour = "black", fill = "white"))
 
 Peak <- ggplot(df_Peak, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI_upr1, color = cut(Pvalue1, breaks = c(0, 0.05, 0.099, 1))))+
@@ -88,7 +89,7 @@ Peak <- ggplot(df_Peak, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI
   #scale_colour_discrete(name = "Taxon")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), alpha = 0.5, position = position_dodge(width = 0.5))+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -97,10 +98,11 @@ Peak <- ggplot(df_Peak, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI
   facet_grid(~ Habitat, scales = "free_x")+
   #scale_color_viridis_d(guide = "none")+
   geom_vline(xintercept = 0)+
-  theme(panel.background = element_rect(fill = "white"), panel.spacing = unit(1, "lines"),
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), strip.text.x = element_text(angle = 0, size = 15, color = "black"),
-        axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = 0.5), 
-        axis.text.y = element_text(face = "bold", size = 15, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2),
+  theme(panel.background = element_rect(fill = "white"), panel.spacing = unit(0.2, "lines"),
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), 
+        strip.text.x = element_text(angle = 0, size = 12, color = "black"),
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = 0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2),
         strip.background = element_rect(colour = "black", fill = "white"))
 
 End <- ggplot(df_End, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI_upr1, color = cut(Pvalue1, breaks = c(0, 0.05, 0.099, 1))))+
@@ -109,7 +111,7 @@ End <- ggplot(df_End, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI_u
   #scale_colour_discrete(name = "Taxon")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), alpha = 0.5, position = position_dodge(width = 0.5))+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -118,9 +120,14 @@ End <- ggplot(df_End, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI_u
   facet_grid(~ Habitat, scales = "free_x")+
   #scale_color_viridis_d(guide = "none")+
   geom_vline(xintercept = 0)+
-  theme(panel.background = element_rect(fill = "white"), strip.text.y = element_text(angle = 0, color = "black"), strip.text.x = element_blank(), panel.spacing = unit(1, "lines"),
-        axis.title.y = element_text(hjust = -3.0, color = "black"), axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = -0.5), axis.text.y = element_text(face = "bold", size = 15, color = "black"), 
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2))
+  theme(panel.background = element_rect(fill = "white"), 
+        strip.text.y = element_text(angle = 0, color = "black"), 
+        strip.text.x = element_blank(), panel.spacing = unit(1, "lines"),
+        axis.title.y = element_text(hjust = -3.0, color = "black"), 
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = -0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), 
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 2))
 
 
 Duration <- ggplot(df_Duration, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, xmax = CI_upr1, color = cut(Pvalue1, breaks = c(0, 0.05, 0.099, 1))))+
@@ -129,7 +136,7 @@ Duration <- ggplot(df_Duration, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, x
   #scale_colour_discrete(name = "Taxon")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), alpha = 0.5, position = position_dodge(width = 0.5))+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -138,17 +145,21 @@ Duration <- ggplot(df_Duration, aes(x = Slope1, y = SpeciesID, xmin = CI_lwr1, x
   facet_grid(~ Habitat, scales = "free_x")+
   #scale_color_viridis_d(guide = "none")+
   geom_vline(xintercept = 0)+
-  theme(panel.background = element_rect(fill = "white"), strip.text.y = element_text(angle = 0, color = "black"), strip.text.x = element_blank(), panel.spacing = unit(1, "lines"),
-        axis.title.y = element_text(hjust = -3.0, color = "black"), axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = -0.5), axis.text.y = element_text(face = "bold", size = 15, color = "black"), 
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2))
+  theme(panel.background = element_rect(fill = "white"), 
+        strip.text.y = element_text(angle = 0, color = "black"), 
+        strip.text.x = element_blank(), panel.spacing = unit(0.2, "lines"),
+        axis.title.y = element_text(hjust = -3.0, color = "black"), 
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = -0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), 
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2))
 
 
 ggarrange(Peak,                             # First row 
-          ggarrange(Duration, labels = c("(b) Duration"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 20), legend = "none"), # Second row with box and dot plots
+          ggarrange(Duration, labels = c("(b) Duration"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 15), legend = "none"), # Second row with box and dot plots
           ncol = 1, nrow = 2, 
-          labels = "(a) Peak", hjust = -0.1, vjust = 1.2, widths = c(1,1), font.label = list(size = 20), legend = "none"                                      # Labels of the scatter plot
+          labels = "(a) Peak", hjust = -0.1, vjust = 1.2, widths = c(1,1), font.label = list(size = 15), legend = "none"                                      # Labels of the scatter plot
 )+
-  theme(plot.margin = margin(2,2,2,4, "cm"))
+  theme(plot.margin = margin(4,2,4,4, "cm"))
 
 ggarrange(Onset,                             # First row 
           ggarrange(End, labels = c("(b) End"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 20), legend = "none"), # Second row with box and dot plots
@@ -187,7 +198,7 @@ Peak_temp <- ggplot(df_Peak, aes(x = Slope2, y = SpeciesID, xmin = CI_lwr2, xmax
   #scale_colour_discrete(name = "Taxon")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), position = position_dodge(width = 0.8), alpha = 0.5)+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -195,10 +206,11 @@ Peak_temp <- ggplot(df_Peak, aes(x = Slope2, y = SpeciesID, xmin = CI_lwr2, xmax
   #geom_boxplot(varwidth = TRUE)+
   facet_grid(~ Habitat)+
   #scale_color_viridis_d(guide = "none")+
-  theme(panel.background = element_rect(fill = "white"), panel.spacing = unit(1, "lines"),
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), strip.text.x = element_text(angle = 0, size = 15), 
-        axis.text.y = element_text(face = "bold", size = 15, color = "black"),
-        axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = 0.5),
+  theme(panel.background = element_rect(fill = "white"), panel.spacing = unit(0.2, "lines"),
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), 
+        strip.text.x = element_text(angle = 0, size = 12, color = "black"),
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = 0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), 
         panel.border = element_rect(color = "black", fill = NA, size = 2),
         strip.background = element_rect(colour = "black", fill = "white"))
 
@@ -229,7 +241,7 @@ Duration_temp <- ggplot(df_Duration, aes(x = Slope2, y = SpeciesID, xmin = CI_lw
   #scale_colour_discrete(name = "Taxon")+
   #scale_shape(guide = "none")+
   geom_pointrange(aes(size = n), alpha = 0.5, position = position_dodge(width = 0.8))+
-  scale_size(range=c(0.4,1.5))+
+  scale_size(range=c(0.2,1))+
   geom_vline(xintercept=0, lty=2)+
   scale_color_manual(values = c('red', 'orange', 'blue'),
                      limits = c('(0,0.05]', '(0.05,0.099]', '(0.099,1]'))+
@@ -237,17 +249,23 @@ Duration_temp <- ggplot(df_Duration, aes(x = Slope2, y = SpeciesID, xmin = CI_lw
   #geom_boxplot(varwidth = TRUE)+
   facet_grid(~ Habitat)+
   #scale_color_viridis_d(guide = "none")+
-  theme(panel.background = element_rect(fill = "white"), strip.text.y = element_text(angle = 0), strip.text.x = element_blank(), panel.spacing = unit(1, "lines"),
-        axis.title.y = element_text(hjust = -3.0, color = "black"), axis.title.x = element_text(face = "bold", size = 15, color = "black", vjust = 0.5), axis.text.y = element_text(face = "bold", size = 15, color = "black"), 
-        axis.text.x = element_text(face = "bold", size = 15, color = "black"), panel.border = element_rect(color = "black", fill = NA, size = 2))
+  theme(panel.background = element_rect(fill = "white"), 
+        strip.text.y = element_text(angle = 0, color = "black"), 
+        strip.text.x = element_blank(), panel.spacing = unit(0.2, "lines"),
+        axis.title.y = element_text(hjust = -3.0, color = "black"), 
+        axis.title.x = element_text(face = "bold", size = 12, color = "black", vjust = -0.5), 
+        axis.text.y = element_text(face = "bold", size = 9, color = "black"), 
+        axis.text.x = element_text(face = "bold", size = 12, color = "black"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 2))
 
 
 ggarrange(Peak_temp,                             # First row 
-          ggarrange(Duration_temp, labels = c("(b) Duration"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 20), legend = "none"), # Second row with box and dot plots
+          ggarrange(Duration_temp, labels = c("(b) Duration"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 15), legend = "none"), # Second row with box and dot plots
           ncol = 1, nrow = 2, 
-          labels = "(a) Peak", hjust = -0.1, vjust = 1.2, widths = c(1,1), font.label = list(size = 20), legend = "none"                                      # Labels of the scatter plot
+          labels = "(a) Peak", hjust = -0.1, vjust = 1.2, widths = c(1,1), font.label = list(size = 15), legend = "none"                                      # Labels of the scatter plot
 )+
-  theme(plot.margin = margin(2,2,2,4, "cm"))
+  theme(plot.margin = margin(4,2,4,4, "cm"))
+
 
 ggarrange(Onset_temp,                             # First row 
           ggarrange(End_temp, labels = c("(b) End"), hjust = -0.1, vjust = -0.2, align = "v", font.label = list(size = 20), legend = "none"), # Second row with box and dot plots

@@ -64,7 +64,7 @@ df_phen_event %>%
 df_phen_event %>%
   mutate(Emerge = case_when(
     SpeciesID == "Acari" ~ "Early",
-    SpeciesID == "ANMU" ~ "Late",
+    SpeciesID == "ANMU" ~ "Early",
     SpeciesID == "Aphidoidea" ~ "Late",
     SpeciesID == "Chalcidoidea" ~ "Late",
     SpeciesID == "CHCE" ~ "Early",
@@ -352,8 +352,8 @@ summary(m.emerge.peak)
 
 ```{r output=TRUE}
 tab_model(m.emerge.peak, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
-           terms = c("(Intercept)", "Snowmelt", "Year", "Peak_Temp_new", "Emerge2", "Trait2", "Snowmelt:Trait2"),
-         pred.labels = c("Intercept", "Snowmelt", "Late active", "Surface Dwelling", "Temp", "Year", "Snowmelt:Surface dwelling"), title = "Peak ~ 1 + Snowmelt*Emerge + Temp*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Early vs late active taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+           terms = c("(Intercept)", "Snowmelt", "Year", "Peak_Temp_new", "Emerge2", "Trait2", "Snowmelt:Trait2", "Emerge2:Peak_Temp_new"),
+         pred.labels = c("Intercept", "Snowmelt", "Late active", "Surface Dwelling", "Temp", "Year", "Snowmelt:Surface dwelling", "Late active:Temp"), title = "Peak ~ 1 + Snowmelt*Trait*Emerge + Temp*Trait*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Early/late and flying/surface taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
 ```
 
 ```{r}
@@ -368,8 +368,8 @@ summary(m.emerge.dur)
 
 ```{r output=TRUE}
 tab_model(m.emerge.dur, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
-           terms = c("(Intercept)", "Snowmelt", "Year", "Onset_Temp_new", "Emerge2", "Trait2", "Snowmelt:Trait2", "Emerge2:Trait2"),
-         pred.labels = c("Intercept", "Snowmelt", "Late active", "Surface dwelling", "Temp", "Year", "Snowmelt:Surface dwelling", "Activity (late):Surface dwelling"), title = "Duration ~ 1 + Snowmelt*Emerge + Temp*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Taxa with different traits", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+           terms = c("(Intercept)", "Snowmelt", "Year", "Onset_Temp_new", "Emerge2", "Trait2", "Snowmelt:Emerge2", "Snowmelt:Trait2", "Emerge2:Trait2", "Snowmelt:Emerge2:Trait2"),
+         pred.labels = c("Intercept", "Snowmelt", "Late active", "Surface dwelling", "Temp", "Year", "Snowmelt:Late active", "Snowmelt:Surface dwelling", "Late active:Surface dwelling", "Snowmelt:Late active:Surface dwelling"), title = "Duration ~ 1 + Snowmelt*Emerge + Temp*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Early/late and flying/surface taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
 ```
 
 In the table, only significant interactions are included.
@@ -387,12 +387,38 @@ summary(m.trait.peak)
 
 
 
-
 df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
 df_phen_event$Trait <- as.factor(df_phen_event$Trait)
-contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 1)
+contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 2)
 contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 1)
 
 m.emerge.dur <- lmer(Duration ~  1 + Snowmelt*Emerge + Onset_Temp_new*Emerge + Year + (1 + Snowmelt + Onset_Temp_new | speciesplot), data=df_phen_event)
 summary(m.emerge.dur)
+
+m.trait.dur <- lmer(Duration ~  1 + Snowmelt*Trait + Onset_Temp_new*Trait + Year + (1 + Snowmelt + Onset_Temp_new | speciesplot), data=df_phen_event)
+summary(m.trait.dur)
+```
+
+```{r}
+tab_model(m.emerge.peak, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+           terms = c("(Intercept)", "Snowmelt", "Year", "Peak_Temp_new", "Emerge2",  "Snowmelt:Emerge2", "Emerge2:Peak_Temp_new"),
+         pred.labels = c("Intercept", "Snowmelt", "Late active", "Temp", "Year", "Snowmelt:Late active", "Late active:Temp"), title = "Peak ~ 1 + Snowmelt*Emerge + Temp*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Early vs. late active taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+tab_model(m.trait.peak, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+           terms = c("(Intercept)", "Snowmelt", "Year", "Peak_Temp_new", "Trait2",  "Snowmelt:Trait2", "Trait2:Peak_Temp_new"),
+         pred.labels = c("Intercept", "Snowmelt", "Surface dwelling", "Temp", "Year", "Snowmelt:Surface dwelling", "Surface dwelling:Temp"), title = "Peak ~ 1 + Snowmelt*Trait + Temp*Trait + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Flying vs surface dwelling taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+tab_model(m.emerge.dur, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+           terms = c("(Intercept)", "Snowmelt", "Year", "Onset_Temp_new", "Emerge2",  "Snowmelt:Emerge2", "Emerge2:Onset_Temp_new"),
+         pred.labels = c("Intercept", "Snowmelt", "Late active", "Temp", "Year", "Snowmelt:Late active", "Late active:Temp"), title = "Duration ~ 1 + Snowmelt*Emerge + Temp*Emerge + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Early vs. late active taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+tab_model(m.trait.dur, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+           terms = c("(Intercept)", "Snowmelt", "Year", "Onset_Temp_new", "Trait2",  "Snowmelt:Trait2", "Trait2:Onset_Temp_new"),
+         pred.labels = c("Intercept", "Snowmelt", "Surface dwelling", "Temp", "Year", "Snowmelt:Surface dwelling", "Surface dwelling:Temp"), title = "Duration ~ 1 + Snowmelt*Trait + Temp*Trait + Year + (1 + Snowmelt + Temp | SpeciesID) + (1 + Snowmelt + Temp | SpeciesID:Plot)", dv.labels = "Flying vs surface dwelling taxa", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
 ```
