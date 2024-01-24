@@ -66,4 +66,10 @@ The following R scripts contains relevant code to reproduce figures 1 - 5
 
 ```
 
+# Data summaries
+The following folder includes data summaries from regression analyses (temporal and climate).
 
+```
+/Data/phenology_data/Dataset_summaries
+
+```
