@@ -59,10 +59,10 @@ The following quarto documents with all relevant code and detailed descriptions 
 The following R scripts contains relevant code to reproduce figures 1 - 5
 
 ```
-/Figure1_climate.R
-/Figure2_phenological_niche.R
-/Figure3_and_4_pheno_responses.R
-/Figure5_functional_groups.R
+/climate_fig.R
+/pheno_niche_fig.R
+/pheno_responses_climate.R
+/functional_groups_fig.R
 
 ```
 
