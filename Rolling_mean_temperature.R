@@ -20,7 +20,7 @@ library(zoo) #Calculating a rolling mean
 library(cowplot)
 library(sjPlot)
 
-Air_temp <- read.csv("Data/temperature_data/View_ClimateBasis_Zackenberg_Data_Air_temperature_Air_temperature__200cm_@_60min_sample__DegreesC260520221737533841.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
+Air_temp <- read.csv("Data/temperature_data/Air_temperature/data/View_ClimateBasis_Zackenberg_Data_Air_temperature.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
 
 
 Air_temp = Air_temp %>% rename("HourTemp" = "AT...C.")

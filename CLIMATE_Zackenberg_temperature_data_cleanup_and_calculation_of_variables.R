@@ -20,14 +20,14 @@ library(cowplot)
 #Read file:Air Temperature and Soil Temperature. Provide full path to file
 dfair <-
   read.csv(
-    "Data/temperature_data/View_ClimateBasis_Zackenberg_Data_Air_temperature_Air_temperature__200cm_@_60min_sample__DegreesC260520221737533841.csv",
+    "Data/temperature_data/Air_temperature/data/View_ClimateBasis_Zackenberg_Data_Air_temperature.csv",
     sep = "\t",
     stringsAsFactors = FALSE,
     header = TRUE
   )
-#dfsoil1 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_0cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature__0cm__60min_average__DegreesC121020211635024106.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
-#dfsoil2 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_5cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature__5cm__60min_average__DegreesC121020211636280909.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
-#dfsoil3 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_10cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature__10cm__60min_average__DegreesC121020211637203249.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
+#dfsoil1 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_0cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature__0cm.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
+#dfsoil2 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_5cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature__5cm.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
+#dfsoil3 <- read.csv("Data/Climate_data_Zackenberg/Soil_temperature_10cm/View_ClimateBasis_Zackenberg_Data_Soil_temperature_Soil_temperature.csv",sep="\t",stringsAsFactors = FALSE, header = TRUE)
 
 dfsoil1 <-
   read.table(
