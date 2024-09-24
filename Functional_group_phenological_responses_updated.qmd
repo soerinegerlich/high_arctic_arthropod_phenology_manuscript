@@ -1,0 +1,821 @@
+---
+title: "Linear_mixed_models_functional_groups"
+author: "Hannah Sørine Gerlich"
+format: html
+editor: visual
+---
+
+# Analyses of phenological responses to snowmelt timing and temperature among functional groups
+
+This file contains all the code necessary to perform linear mixed modelling on the effect of temperature and snowmelt on phenology among functional groups and arthropods with specific traits.
+
+Initially, we load all the relevant packages.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+pkgs <- c("tidyverse", "readxl", "stats", "lme4", "lmerTest", "car",
+          "sjPlot", "MASS", "gtsummary")
+
+vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
+       logical.return = TRUE)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event <-
+  read.csv(
+    "Data/phenology_data/Pheno_air_temp.csv",
+    sep = ",",
+    stringsAsFactors = FALSE,
+    header = TRUE
+  )
+
+dfsnowmelt_climatestation <-
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_climatestation.xlsx")
+
+df_phen_event$Snowmelt <-
+  dfsnowmelt_climatestation$DOY[match(paste0(df_phen_event$Year),
+                                      paste0(dfsnowmelt_climatestation$Year))]
+```
+
+Assign functional groups and traits.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event %>%
+  mutate(Order = case_when(
+    SpeciesID == "Acari" ~ "Decomposer",
+    SpeciesID == "ANMU" ~ "Mixed feeder",
+    SpeciesID == "Aphidoidea" ~ "Herbivore",
+    SpeciesID == "Chalcidoidea" ~ "Parasitoid",
+    SpeciesID == "CHCE" ~ "Mixed feeder",
+    SpeciesID == "Coccoidea" ~ "Herbivore",
+    SpeciesID == "Collembola" ~ "Decomposer",
+    SpeciesID == "Culicidae" ~ "Mixed feeder",
+    SpeciesID == "Ichneumonidae" ~ "Parasitoid",
+    SpeciesID == "Linyphiidae" ~ "Predator",
+    SpeciesID == "Lycosidae" ~ "Predator",
+    SpeciesID == "MYSC" ~ "Mixed feeder",
+    SpeciesID == "Nymphalidae" ~ "Mixed feeder",
+    SpeciesID == "Phoridae" ~ "Mixed feeder",
+    SpeciesID == "Thomisidae" ~ "Predator")) -> df_phen_event
+
+df_phen_event %>%
+  mutate(Emerge = case_when(
+    SpeciesID == "Acari" ~ "Early",
+    SpeciesID == "ANMU" ~ "Early",
+    SpeciesID == "Aphidoidea" ~ "Late",
+    SpeciesID == "Chalcidoidea" ~ "Late",
+    SpeciesID == "CHCE" ~ "Early",
+    SpeciesID == "Coccoidea" ~ "Late",
+    SpeciesID == "Collembola" ~ "Early",
+    SpeciesID == "Culicidae" ~ "Late",
+    SpeciesID == "Ichneumonidae" ~ "Late",
+    SpeciesID == "Linyphiidae" ~ "Early",
+    SpeciesID == "Lycosidae" ~ "Early",
+    SpeciesID == "MYSC" ~ "Early",
+    SpeciesID == "Nymphalidae" ~ "Late",
+    SpeciesID == "Phoridae" ~ "Late",
+    SpeciesID == "Thomisidae" ~ "Early")) -> df_phen_event
+
+df_phen_event %>%
+  mutate(Trait = case_when(
+    SpeciesID == "Acari" ~ "Surface",
+    SpeciesID == "ANMU" ~ "Flying",
+    SpeciesID == "Aphidoidea" ~ "Surface",
+    SpeciesID == "Chalcidoidea" ~ "Flying",
+    SpeciesID == "CHCE" ~ "Flying",
+    SpeciesID == "Coccoidea" ~ "Surface",
+    SpeciesID == "Collembola" ~ "Surface",
+    SpeciesID == "Culicidae" ~ "Flying",
+    SpeciesID == "Ichneumonidae" ~ "Flying",
+    SpeciesID == "Linyphiidae" ~ "Surface",
+    SpeciesID == "Lycosidae" ~ "Surface",
+    SpeciesID == "MYSC" ~ "Flying",
+    SpeciesID == "Nymphalidae" ~ "Flying",
+    SpeciesID == "Phoridae" ~ "Flying",
+    SpeciesID == "Thomisidae" ~ "Surface")) -> df_phen_event
+```
+
+We find strong collinearity between temperature and snowmelt for families in the snowbed plot (Art6) and Nymphalidae in one mesic heath plot (Art3). We also do not consider phenology observations for spiders (predators) and decomposers in the window trap (Plot 1) reliable. Therefore, we have to remove these observations from the data.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art1" &
+                    (df_phen_event$Order == "Decomposer")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art1" &
+                    (df_phen_event$Order == "Predator")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$Plot == "Art3" &
+                    (df_phen_event$SpeciesID == "Nymphalidae")), ]
+df_phen_event <-
+  df_phen_event[!(df_phen_event$SpeciesID == "Lygaeidae"), ]
+
+df_phen_event <- subset(df_phen_event,!Plot == "Art6")
+```
+
+Assign habitat types.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event %>%
+  mutate(
+    Habitat = case_when(
+      Plot == "Art1" ~ "Pond",
+      Plot == "Art2" ~ "Wet fen",
+      Plot == "Art3" ~ "Mesic heath",
+      Plot == "Art4" ~ "Mesic heath",
+      Plot == "Art5" ~ "Arid heath",
+      Plot == "Art7" ~ "Arid heath"
+    )
+  ) -> df_phen_event
+```
+
+Remove taxa in the dataset for which we do not have enough data. These omly contain NA values.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event$Order[is.na(df_phen_event$Order)] <- "NA"
+df_phen_event <- subset(df_phen_event, Order != "NA")
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+
+df_phen_event$Onset[is.na(df_phen_event$Onset)] <- "NA"
+df_phen_event <- subset(df_phen_event, Onset != "NA")
+df_phen_event$Onset <- as.numeric(df_phen_event$Onset)
+```
+
+Because the temperature variable is specific for each taxon-by-plot combination, we need to account for within subject variation. Other than that, we also have to add year as a covariate to detrend the model.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event$speciesplot <-
+  as.factor(paste(df_phen_event$SpeciesID, df_phen_event$Plot))
+
+df_phen_event$Peak_Temp_new <-
+  df_phen_event$Peak_Temp30 - tapply(df_phen_event$Peak_Temp30, df_phen_event$speciesplot, mean)[df_phen_event$speciesplot]
+df_phen_event$Onset_Temp_new <-
+  df_phen_event$Onset_Temp30 - tapply(df_phen_event$Onset_Temp30, df_phen_event$speciesplot, mean)[df_phen_event$speciesplot]
+df_phen_event$End_Temp_new <-
+  df_phen_event$End_Temp30 - tapply(df_phen_event$End_Temp30, df_phen_event$speciesplot, mean)[df_phen_event$speciesplot]
+```
+
+First, we test differences in **peak** phenological responses to climate variables among functional groups.
+
+\newpage
+
+## Peak phenology
+
+First, we test if arthropod taxa within the same functional group respond similarly (if the random effect of functional group explain more variation than the random effect of the interaction between taxa and functional group).
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+model <- lmer(Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 + Snowmelt + Peak_Temp_new  | Habitat:SpeciesID:Order) + (1 + Snowmelt + Peak_Temp_new | Order) + (1 | Plot), data=df_phen_event)
+
+summary_stats <- summary(model)
+#VarCorr(model, comp=c("Variance","Std.Dev."), digits=2)
+coef(model)
+
+# Extract coefficients, standard errors, and p-values
+coefficients <- fixef(model)
+std_errors <- sqrt(diag(vcov(model)))
+p_values <- summary(model)$coefficients[, "Pr(>|t|)"]
+
+# Create a dataframe for the table
+table_data <- data.frame(
+  Predictor = names(coefficients),
+  Coefficient = coefficients,
+  `Std. Error` = std_errors,
+  `P-value` = p_values
+)
+
+# Print the table using kable
+
+```
+
+\newpage
+
+```{r}
+library(knitr)
+kable(table_data, format = "html", caption = "Summary of Linear Mixed Model", digits = 3)
+
+random_effects <- VarCorr(model)
+
+# Convert random effects to a data frame
+random_effects_df <- as.data.frame(random_effects)
+
+# Print the random effect variance estimates table
+#print(random_effects_df)
+
+
+# Print the random effect variance estimates table using kable
+kable(random_effects_df, caption = "Random Effect Variance Estimates", digits = 3)
+```
+
+\newpage
+
+```{r}
+model <- lmer(Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + (1 + Snowmelt + Onset_Temp_new  | Habitat:SpeciesID:Order) + (1 + Snowmelt + Onset_Temp_new | Order) + (1 | Plot), data=df_phen_event)
+
+summary_stats <- summary(model)
+#VarCorr(model, comp=c("Variance","Std.Dev."), digits=2)
+coef(model)
+
+# Extract coefficients, standard errors, and p-values
+coefficients <- fixef(model)
+std_errors <- sqrt(diag(vcov(model)))
+p_values <- summary(model)$coefficients[, "Pr(>|t|)"]
+
+# Create a dataframe for the table
+table_data <- data.frame(
+  Predictor = names(coefficients),
+  Coefficient = coefficients,
+  `Std. Error` = std_errors,
+  `P-value` = p_values
+)
+
+# Print the table using kable
+
+```
+
+\newpage
+
+```{r}
+library(knitr)
+kable(table_data, format = "html", caption = "Summary of Linear Mixed Model", digits = 3)
+
+random_effects <- VarCorr(model)
+
+# Convert random effects to a data frame
+random_effects_df <- as.data.frame(random_effects)
+
+# Print the random effect variance estimates table
+print(random_effects_df)
+
+
+# Print the random effect variance estimates table using kable
+kable(random_effects_df, caption = "Random Effect Variance Estimates", digits = 3)
+```
+
+\newpage
+
+|                   |          |      |         |
+|-------------------|:--------:|:----:|:-------:|
+| *Peak*            | Estimate |  SE  |   *P*   |
+| **Decomposers**   |          |      |         |
+| Snowmelt          |  0.011   | 0.06 |  0.25   |
+| Temperature       |  -1.45   | 1.01 |  0.19   |
+| Year              |  -0.17   | 0.04 | \<0.001 |
+| **Herbivores**    |          |      |         |
+| Snowmelt          |   0.28   | 0.12 |  0.05   |
+| Temperature       |  -1.14   | 1.37 |  0.44   |
+| Year              |  -0.17   | 0.04 | \<0.001 |
+| **Mixed feeders** |          |      |         |
+| Snowmelt          |   0.40   | 0.04 | \<0.001 |
+| Temperature       |  -2.02   | 0.43 | \<0.001 |
+| Year              |  -0.16   | 0.04 | \<0.001 |
+| **Parasitoids**   |          |      |         |
+| Snowmelt          |   0.40   | 0.10 | \<0.001 |
+| Temperature       |  -1.24   | 0.83 |  0.14   |
+| Year              |  -0.16   | 0.04 | \<0.001 |
+| **Predators**     |          |      |         |
+| Snowmelt          |   0.08   | 0.07 |  0.79   |
+| Temperature       |  -1.52   | 0.74 |  0.03   |
+| Year              |  -0.16   | 0.04 | \<0.001 |
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+
+m.function.peak.snow <- lm(Peak ~ 1 + Snowmelt*Order, data=df_phen_event)
+summary(m.function.peak.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+
+m.function.peak.temp <- lm(Peak ~ 1 + Peak_Temp_new*Order, data=df_phen_event)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.function.peak.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Peak, colour = Order)) +
+    facet_wrap(~ Order, nrow=2) + 
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of peak activity in functional groups to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma") +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.function.peak.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.function.peak.temp.fig <- ggplot(df_phen_event, aes(x = Peak_Temp_new, y = Peak, colour = Order)) +
+    facet_wrap(~ Order, nrow=2) +  
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of peak activity in functional groups to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma") +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.function.peak.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+## Duration of activity
+
+|                   |          |      |         |
+|-------------------|:--------:|:----:|:-------:|
+| *Duration*        | Estimate |  SE  |   *P*   |
+| **Decomposers**   |          |      |         |
+| Snowmelt          |  -0.22   | 0.06 | \<0.01  |
+| Temperature       |  -0.38   | 0.68 |  0.39   |
+| Year              |   0.03   | 0.04 |  0.45   |
+| **Herbivores**    |          |      |         |
+| Snowmelt          |  -0.07   | 0.12 |  0.56   |
+| Temperature       |  -1.15   | 1.30 |  0.17   |
+| Year              |   0.03   | 0.04 |  0.45   |
+| **Mixed feeders** |          |      |         |
+| Snowmelt          |   0.10   | 0.05 | \<0.01  |
+| Temperature       |  -0.05   | 0.56 |  0.85   |
+| Year              |   0.04   | 0.07 |  0.59   |
+| **Parasitoids**   |          |      |         |
+| Snowmelt          |  -0.08   | 0.11 |  0.16   |
+| Temperature       |   2.48   | 1.17 |  0.08   |
+| Year              |   0.04   | 0.07 |  0.55   |
+| **Predators**     |          |      |         |
+| Snowmelt          |  -0.40   | 0.07 | \<0.001 |
+| Temperature       |  -0.41   | 0.76 |  0.14   |
+| Year              |   0.04   | 0.07 |  0.57   |
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.function.duration.snow <- lm(Duration ~ 1 + Snowmelt*Order, data=df_phen_event)
+summary(m.function.duration.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.function.duration.temp <- lm(Duration ~ 1 + Onset_Temp_new*Order, data=df_phen_event)
+summary(m.function.duration.temp)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+(m.function.duration.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Duration, colour = Order)) +
+    facet_wrap(~ Order, nrow=2) + 
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (no. of days)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of duration of activity in functional groups to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma") +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.function.duration.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+(m.function.duration.temp.fig <- ggplot(df_phen_event, aes(x = Onset_Temp_new, y = Duration, colour = Order)) +
+    facet_wrap(~ Order, nrow=2) + 
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (no. of days)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of duration of activity in functional groups to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma") +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.function.duration.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+## Phenological responses of arthropod taxa with different traits
+
+Here we test if arthropods with different traits (early/late active, flying/surface dwelling) respond in the same way.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event$peaktemp_scaled <- scale(df_phen_event$Peak_Temp_new, center = F)
+df_phen_event$snow_scaled <- scale(df_phen_event$Snowmelt, center = F)
+df_phen_event$peak_scaled <- scale(df_phen_event$Peak, center = F)
+
+colnames(df_phen_event)[24] ="peaktemp_scaled"
+colnames(df_phen_event)[25] ="snow_scaled"
+colnames(df_phen_event)[26] ="peak_scaled"
+
+df_phen_event$onsettemp_scaled <- scale(df_phen_event$Onset_Temp_new, center = F)
+df_phen_event$duration_scaled <- scale(df_phen_event$Duration, center = F)
+df_phen_event$onset_scaled <- scale(df_phen_event$Onset, center = F)
+
+colnames(df_phen_event)[27] ="onsettemp_scaled"
+colnames(df_phen_event)[28] ="duration_scaled"
+colnames(df_phen_event)[29] ="onset_scaled"
+
+df_phen_event$endtemp_scaled <- scale(df_phen_event$End_Temp_new, center = F)
+df_phen_event$end_scaled <- scale(df_phen_event$End, center = F)
+
+colnames(df_phen_event)[30] ="endtemp_scaled"
+colnames(df_phen_event)[31] ="end_scaled"
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
+df_phen_event$Trait <- as.factor(df_phen_event$Trait)
+contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 1)
+contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 1)
+
+m.emerge.peak <- lmer(peak_scaled ~ 1 + snow_scaled*Emerge*Trait + peaktemp_scaled*Emerge*Trait + Year + (1 + snow_scaled + peaktemp_scaled | speciesplot), data=df_phen_event)
+summary(m.emerge.peak)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+
+#df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
+#df_phen_event$Trait <- as.factor(df_phen_event$Trait)
+#contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 1)
+#contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 1)
+
+#m.emerge.peak <- lmer(Peak ~ 1 + Snowmelt*Emerge*Trait + Peak_Temp_new*Emerge*Trait + Year + (1 + Snowmelt + Peak_Temp_new | speciesplot), data=df_phen_event)
+#summary(m.emerge.peak)
+
+
+m.emerge.peak <- lmer(Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 + Snowmelt + Peak_Temp_new  | Habitat:SpeciesID:Order) + (1 + Snowmelt + Peak_Temp_new | Emerge) + (1 + Snowmelt + Peak_Temp_new | Trait) + (1 | Plot), data=df_phen_event)
+
+coef(m.emerge.peak)
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+#df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
+#df_phen_event$Trait <- as.factor(df_phen_event$Trait)
+#contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 1)
+#contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 1)
+
+#m.emerge.dur <- lmer(Duration ~  1 + Snowmelt*Emerge*Trait + Onset_Temp_new*Emerge*Trait + Year + (1 + Snowmelt + Onset_Temp_new | speciesplot), data=df_phen_event)
+#summary(m.emerge.dur)
+
+m.emerge.dur <- lmer(Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + (1 + Snowmelt + Onset_Temp_new  | Habitat:SpeciesID:Order) + (1 + Snowmelt + Onset_Temp_new | Emerge) + (1 + Snowmelt + Onset_Temp_new | Trait) + (1 | Plot), data=df_phen_event)
+
+coef(m.emerge.dur)
+```
+
+In the table, only significant interactions are included.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
+df_phen_event$Trait <- as.factor(df_phen_event$Trait)
+contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 2)
+contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 2)
+
+m.emerge.peak <- lmer(Peak ~ 1 + Snowmelt*Emerge + Peak_Temp_new*Emerge + Year + (1 + Snowmelt + Peak_Temp_new | speciesplot), data=df_phen_event)
+summary(m.emerge.peak)
+
+
+m.trait.peak <- lmer(Peak ~ 1 + Snowmelt*Trait + Peak_Temp_new*Trait + Year + (1 + Snowmelt + Peak_Temp_new | speciesplot), data=df_phen_event)
+summary(m.trait.peak)
+
+
+
+df_phen_event$Emerge <- as.factor(df_phen_event$Emerge)
+df_phen_event$Trait <- as.factor(df_phen_event$Trait)
+contrasts(df_phen_event$Emerge) <- contr.treatment(2, base = 2)
+contrasts(df_phen_event$Trait) <- contr.treatment(2, base = 2)
+
+m.emerge.dur <- lmer(Duration ~  1 + Snowmelt*Emerge + Onset_Temp_new*Emerge + Year + (1 + Snowmelt + Onset_Temp_new | speciesplot), data=df_phen_event)
+summary(m.emerge.dur)
+
+m.trait.dur <- lmer(Duration ~  1 + Snowmelt*Trait + Onset_Temp_new*Trait + Year + (1 + Snowmelt + Onset_Temp_new | speciesplot), data=df_phen_event)
+summary(m.trait.dur)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.emerge.peak.snow <- lm(Peak ~ 1 + Snowmelt*Emerge, data=df_phen_event)
+summary(m.emerge.peak.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.emerge.peak.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Peak, colour = Emerge)) +
+    facet_wrap(~ Emerge) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of peak activity in early vs late emerging taxa to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0, end = 1) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.emerge.peak.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.emerge.peak.temp <- lm(Peak ~ 1 + Peak_Temp_new*Emerge, data=df_phen_event)
+summary(m.emerge.peak.temp)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.emerge.peak.temp.fig <- ggplot(df_phen_event, aes(x = Peak_Temp_new, y = Peak, colour = Emerge)) +
+    facet_wrap(~ Emerge) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of peak activity in early vs late emerging taxa to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.1, end = 0.9) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.emerge.peak.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.trait.peak.snow <- lm(Peak ~ 1 + Snowmelt*Trait, data=df_phen_event)
+summary(m.trait.peak.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.trait.peak.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Peak, colour = Trait)) +
+    facet_wrap(~ Trait) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of peak activity in flying vs. surface dwelling taxa to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.2, end = 0.8) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.trait.peak.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.trait.peak.temp <- lm(Peak ~ 1 + Peak_Temp_new*Trait, data=df_phen_event)
+summary(m.trait.peak.temp)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.trait.peak.temp.fig <- ggplot(df_phen_event, aes(x = Peak_Temp_new, y = Peak, colour = Trait)) +
+    facet_wrap(~ Trait) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Peak activity (Day of Year)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of peak activity in flying vs. surface dwelling taxa to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.3, end = 0.7) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.trait.peak.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.emerge.duration.snow <- lm(Duration ~ 1 + Snowmelt*Emerge, data=df_phen_event)
+summary(m.emerge.duration.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.emerge.duration.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Duration, colour = Emerge)) +
+    facet_wrap(~ Emerge) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (No. of days)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of duration activity in early vs late emerging taxa to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0, end = 1) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.emerge.duration.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.emerge.duration.temp <- lm(Duration ~ 1 + Onset_Temp_new*Emerge, data=df_phen_event)
+summary(m.emerge.duration.temp)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.emerge.duration.temp.fig <- ggplot(df_phen_event, aes(x = Onset_Temp_new, y = Duration, colour = Emerge)) +
+    facet_wrap(~ Emerge) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (Day of Year)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of duration activity in early vs late emerging taxa to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.1, end = 0.9) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.emerge.duration.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.trait.duration.snow <- lm(Duration ~ 1 + Snowmelt*Trait, data=df_phen_event)
+summary(m.trait.duration.snow)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.trait.duration.snow.fig <- ggplot(df_phen_event, aes(x = Snowmelt, y = Duration, colour = Trait)) +
+    facet_wrap(~ Trait) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (No. of Year)") +
+    xlab("Snowmelt timing (Day of Year)") +
+    labs(title = "Response of duration activity in flying vs. surface dwelling taxa to snowmelt") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.2, end = 0.8) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.trait.duration.snow)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8))) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+m.trait.duration.temp <- lm(Duration ~ 1 + Onset_Temp_new*Trait, data=df_phen_event)
+summary(m.trait.duration.temp)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+(m.trait.duration.temp.fig <- ggplot(df_phen_event, aes(x = Onset_Temp_new, y = Duration, colour = Trait)) +
+    facet_wrap(~ Trait) +   # a panel for each mountain range
+    geom_point(alpha = 0.5) +
+    ylab("Duration of activity (No. of days)") +
+    xlab("Temperature (°C)") +
+    labs(title = "Response of duration activity in flying vs. surface dwelling taxa to temperature") +
+    theme_classic() +
+    scale_color_viridis_d(option = "plasma", begin = 0.3, end = 0.7) +
+    geom_line(data = cbind(df_phen_event, pred = predict(m.trait.duration.temp)), aes(y = pred), linewidth = 1) +  # adding predicted line from mixed model 
+    theme(legend.position = "none",
+          panel.spacing = unit(2, "lines"),
+          axis.text.x = element_text(angle = 35, vjust = 0.8)))
+```
+
+**Table** - Peak phenological responses to snowmelt timing and temperature based on phenological niche (early vs late) and mobility (flying vs surface dwelling) of arthropods.
+
+|                      |          |      |         |
+|----------------------|:--------:|:----:|:-------:|
+| *Peak*               | Estimate |  SE  |   *P*   |
+| **Early**            |          |      |         |
+| Snowmelt             |   0.23   | 0.03 | \<0.01  |
+| Temperature          |  -1.86   | 0.57 | \<0.001 |
+| **Late**             |          |      |         |
+| Snowmelt             |   0.31   | 0.06 | \<0.001 |
+| Temperature          |  -1.30   | 0.77 |  0.71   |
+| **Flying**           |          |      |         |
+| Snowmelt             |   0.42   | 0.05 | \<0.001 |
+| Temperature          |  -1.94   | 0.56 | \<0.001 |
+| **Surface dwelling** |          |      |         |
+| Snowmelt             |   0.12   | 0.05 |  0.05   |
+| Temperature          |  -1.32   | 0.66 | \<0.01  |
+
+**Table** - Responses in duration of activity to snowmelt timing and temperature based on phenological niche (early vs late) and mobility (flying vs surface dwelling) of arthropods.
+
+|                      |          |      |         |
+|----------------------|:--------:|:----:|:-------:|
+| *Duration*           | Estimate |  SE  |   *P*   |
+| **Early**            |          |      |         |
+| Snowmelt             |  -0.10   | 0.03 | \<0.001 |
+| Temperature          |  -0.11   | 0.34 |  0.50   |
+| **Late**             |          |      |         |
+| Snowmelt             |  -0.14   | 0.06 |  0.65   |
+| Temperature          |  -0.04   | 0.65 |  0.92   |
+| **Flying**           |          |      |         |
+| Snowmelt             |   0.07   | 0.05 |  0.06   |
+| Temperature          |   0.60   | 0.42 |  0.26   |
+| **Surface dwelling** |          |      |         |
+| Snowmelt             |  -0.30   | 0.05 |  0.001  |
+| Temperature          |  -0.76   | 0.42 |  0.03   |

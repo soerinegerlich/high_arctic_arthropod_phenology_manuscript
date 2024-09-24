@@ -465,9 +465,9 @@ dfsnowmeltall$MeanSnowmelt <- as.numeric(dfsnowmeltall$MeanSnowmelt)
 
 #df1 <- read.csv2("Data/Climate_data_Zackenberg\\Snowmelt_Zackenberg.csv",sep=",",stringsAsFactors = FALSE)
 df1 <-
-  readxl::read_xlsx("Data/Snowmelt_Zackenberg.xlsx", sheet = "Sheet2")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_Zackenberg.xlsx", sheet = "Sheet2")
 dfsnowmeltall <-
-  readxl::read_xlsx("Data/Snowmelt_climatestation.xlsx")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_Climatestation.xlsx")
 
 class(df1$MeanSnowmelt)
 df1$MeanSnowmelt <- as.numeric(df1$MeanSnowmelt)
@@ -514,25 +514,26 @@ ggplot(data = df3, aes(x = Year, y = AverageSnowmelt, colour = Habitat)) +
     ),
     axis.text.x = element_text(
       face = "bold",
-      size = 15,
+      size = 12,
       color = "black"
     ),
     axis.text.y = element_text(
       face = "bold",
-      size = 15,
+      size = 12,
       color = "black"
     ),
     axis.title.x = element_text(
       face = "bold",
-      size = 15,
+      size = 14,
       color = "black"
     ),
     axis.title.y = element_text(
       face = "bold",
-      size = 15,
+      size = 14,
       vjust = 2,
       color = "black"
-    )
+    ),
+    plot.margin = margin(9, 2, 9, 2, "cm")
   )
 
 df1 %>%
@@ -541,7 +542,7 @@ df1 %>%
 
 dfsnowmeltall %>%
   group_by(Year) %>%
-  summarise(Snowmelt_habitat = mean(SnowmeltDOY)) -> df1b
+  summarise(Snowmelt_habitat = mean(DOY)) -> df1b
 
 df1b$Habitat <- "Climatestation"
 
@@ -609,12 +610,22 @@ res5
 
 
 df_Art1 = merge(df1b, df1_Art1, by = "Year")
+df_Art2 = merge(df1b, df1_Art2, by = "Year")
+df_Art3 = merge(df1b, df1_Art3, by = "Year")
+df_Art5 = merge(df1b, df1_Art5, by = "Year")
+
+par(mfrow=c(2,2))
+
+par(mai=c(1.5,1,1.5,0.3))
 
 plot(
   df_Art1$Snowmelt_habitat.x,
   df_Art1$Snowmelt_habitat.y,
   pch = 19,
-  col = "lightblue"
+  col = "lightblue",
+  xlab = "Snowmelt timing climate station",
+  ylab = "Snowmelt timing local plot",
+  main = "Plot 1 (Pond)"
 )
 # Regression line
 abline(
@@ -623,5 +634,60 @@ abline(
   lwd = 3
 )
 
+par(mai=c(1.5,0.8,1.5,0.5))
+
+plot(
+  df_Art2$Snowmelt_habitat.x,
+  df_Art2$Snowmelt_habitat.y,
+  pch = 19,
+  col = "lightblue",
+  xlab = "Snowmelt timing climate station",
+  ylab = "Snowmelt timing local plot",
+  main = "Plot 2 (Wet fen)"
+)
+# Regression line
+abline(
+  lm(df_Art2$Snowmelt_habitat.y ~ df_Art2$Snowmelt_habitat.x),
+  col = "red",
+  lwd = 3
+)
+
+par(mai=c(1.5,1,1.5,0.3))
+
+plot(
+  df_Art3$Snowmelt_habitat.x,
+  df_Art3$Snowmelt_habitat.y,
+  pch = 19,
+  col = "lightblue",
+  xlab = "Snowmelt timing climate station",
+  ylab = "Snowmelt timing local plot",
+  main = "Plot 3 (Mesic heath)"
+)
+# Regression line
+abline(
+  lm(df_Art3$Snowmelt_habitat.y ~ df_Art3$Snowmelt_habitat.x),
+  col = "red",
+  lwd = 3
+)
+
+par(mai=c(1.5,0.8,1.5,0.5))
+
+plot(
+  df_Art5$Snowmelt_habitat.x,
+  df_Art5$Snowmelt_habitat.y,
+  pch = 19,
+  col = "lightblue",
+  xlab = "Snowmelt timing climate station",
+  ylab = "Snowmelt timing local plot",
+  main = "Plot 5 (Arid heath)"
+)
+# Regression line
+abline(
+  lm(df_Art5$Snowmelt_habitat.y ~ df_Art5$Snowmelt_habitat.x),
+  col = "red",
+  lwd = 3
+)
+
 m.1 <- lm(Snowmelt_habitat.y ~ df_Art1$Snowmelt_habitat.x, df_Art1)
 summary(m.1)
+

@@ -3,9 +3,6 @@ title: "Pheno_responses_climate"
 author: "Hannah Sørine Gerlich"
 format: html
 editor: visual
-message: false
-warning: false
-output: false
 ---
 
 # Analyses on the effect of temperature and snowmelt on high-arctic arthropod phenology
@@ -15,6 +12,10 @@ This file contains all the code necessary to perform linear mixed modelling on t
 Initially, we load all the relevant packages.
 
 ```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
 pkgs <- c("tidyverse", "readxl", "corrplot", "stats", "lme4", "lmerTest", "car",
           "sjPlot")
 
@@ -25,9 +26,12 @@ vapply(pkgs, library, FUN.VALUE = logical(1L), character.only = TRUE,
 Then read dataset with phenological metrics as well as air temperature estimates. The snowmelt data is in a separate csv file and we first have to bind the columns.
 
 ```{r}
+#| message: false
+#| warning: false
+
 df_phen_event <-
   read.csv(
-    "Data/phenology_dataPheno_air_temp.csv",
+    "Data/phenology_data/Pheno_air_temp.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE
@@ -41,9 +45,11 @@ df_phen_event$Snowmelt <-
                                       paste0(dfsnowmelt_climatestation$Year))]
 ```
 
-Assign functional groups and traits.
-
 ```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
 df_phen_event %>%
   mutate(Order = case_when(
     SpeciesID == "Acari" ~ "Decomposer",
@@ -60,7 +66,6 @@ df_phen_event %>%
     SpeciesID == "MYSC" ~ "Mixed feeder",
     SpeciesID == "Nymphalidae" ~ "Mixed feeder",
     SpeciesID == "Phoridae" ~ "Mixed feeder",
-    SpeciesID == "Scathophagidae" ~ "Mixed feeder",
     SpeciesID == "Thomisidae" ~ "Predator")) -> df_phen_event
 
 df_phen_event %>%
@@ -105,6 +110,9 @@ df_phen_event %>%
 We find strong collinearity between temperature and snowmelt for families in the snowbed plot (Art6) and Nymphalidae in one mesic heath plot (Art3). Therefore, we have to remove these observations from the data.
 
 ```{r}
+#| message: false
+#| warning: false
+
 df_phen_event <-
   df_phen_event[!(df_phen_event$Plot == "Art1" &
                     (df_phen_event$Order == "Decomposer")), ]
@@ -132,9 +140,11 @@ df_phen_event <-
 df_phen_event <- subset(df_phen_event,!Plot == "Art6")
 ```
 
-Assign habitat type.
-
 ```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
 df_phen_event %>%
   mutate(
     Habitat = case_when(
@@ -148,16 +158,22 @@ df_phen_event %>%
   ) -> df_phen_event
 ```
 
-Remove taxa in the dataset for which we do not have enough data.
-
 ```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
 df_phen_event$Order[is.na(df_phen_event$Order)] <- "NA"
 df_phen_event <- subset(df_phen_event, Order != "NA")
 ```
 
-Because the temperature variable is specific for each taxon-by-plot combination, we need to account for within subject variation. Other than that, we also have to add year as a covariate to detrend the model.
+Because the temperature variable is specific for each taxon-by-plot combination, we need to account for within subject variation. We also have to add year as a covariate to detrend the model.
 
 ```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
 df_phen_event$speciesplot <-
   as.factor(paste(df_phen_event$SpeciesID, df_phen_event$Plot))
 
@@ -169,128 +185,638 @@ df_phen_event$End_Temp_new <-
   df_phen_event$End_Temp30 - tapply(df_phen_event$End_Temp30, df_phen_event$speciesplot, mean)[df_phen_event$speciesplot]
 ```
 
-First model tests effect of temperature and snowmelt on peak phenology.
+Because data for some taxa in some plots are sparse, we scale the predictors so that the model can converge.
 
 ```{r}
+#| message: false
+#| warning: false
 
-m.full <-
+df_phen_event$peaktemp_scaled <- scale(df_phen_event$Peak_Temp_new, center = F)
+df_phen_event$snow_scaled <- scale(df_phen_event$Snowmelt, center = F)
+df_phen_event$peak_scaled <- scale(df_phen_event$Peak, center = F)
+
+colnames(df_phen_event)[24] ="peaktemp_scaled"
+colnames(df_phen_event)[25] ="snow_scaled"
+colnames(df_phen_event)[26] ="peak_scaled"
+
+df_phen_event$onsettemp_scaled <- scale(df_phen_event$Onset_Temp_new, center = F)
+df_phen_event$duration_scaled <- scale(df_phen_event$Duration, center = F)
+df_phen_event$onset_scaled <- scale(df_phen_event$Onset, center = F)
+
+colnames(df_phen_event)[27] ="onsettemp_scaled"
+colnames(df_phen_event)[28] ="duration_scaled"
+colnames(df_phen_event)[29] ="onset_scaled"
+
+df_phen_event$endtemp_scaled <- scale(df_phen_event$End_Temp_new, center = F)
+df_phen_event$end_scaled <- scale(df_phen_event$End, center = F)
+
+colnames(df_phen_event)[30] ="endtemp_scaled"
+colnames(df_phen_event)[31] ="end_scaled"
+```
+
+The linear mixed model now contains scaled climate variables with relevant random slope and intercept effects of taxa and plot on each climate variable. Also, sampling variance (speciesplot) has been added.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| output: false
+
+m.peak <-
   lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 + Snowmelt + Peak_Temp_new |
-                                                    SpeciesID) + (1 |
-                                                                    Year) + (1 |
-                                                                               Year:SpeciesID) + (1 |
-                                                                                                    Plot) + (1 + Snowmelt + Peak_Temp_new |
-                                                                                                               speciesplot),
+    Peak ~ 1 + snow_scaled + peaktemp_scaled + Year + 
+      (1 | Plot) +
+      (1 + snow_scaled + peaktemp_scaled | speciesplot) +
+      (1 + snow_scaled + peaktemp_scaled | SpeciesID) +
+      (1 + snow_scaled + peaktemp_scaled | Habitat),
     data = df_phen_event
   )
-summary(m.full)
-#This model does not converge. We need to decrease the complexity.
 
-#Try removing the random year effect
+summary(m.peak)
 
-m.full1 <-
-  lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 + Snowmelt + Peak_Temp_new |
-                                                    SpeciesID) + (1 |
-                                                                    Year:SpeciesID) + (1 |
-                                                                                         Plot) + (1 + Snowmelt + Peak_Temp_new |
-                                                                                                    speciesplot),
-    data = df_phen_event
-  )
-summary(m.full1)
-#Still not converging
-
-#Try removing effect of snowmelt on each taxa, because it's a main concern for temperature
-m.full2 <-
-  lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 + Peak_Temp_new |
-                                                    SpeciesID) + (1 |
-                                                                    Year:SpeciesID) + (1 |
-                                                                                         Plot) + (1 + Peak_Temp_new | speciesplot),
-    data = df_phen_event
-  )
-summary(m.full2)
-#Still not converging
-
-#Try forcing correlation parameters to zero
-m.full3 <-
-  lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (0 + Snowmelt + Peak_Temp_new |
-                                                    SpeciesID) + (1 |
-                                                                    Year) + (1 |
-                                                                               Year:SpeciesID) + (1 |
-                                                                                                    Plot) + (0 + Snowmelt + Peak_Temp_new |
-                                                                                                               speciesplot),
-    data = df_phen_event
-  )
-summary(m.full3)
-#Not converging
-
-#Simplified model with forced corellation parameters to zero
-m.full4 <-
-  lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (0 + Peak_Temp_new |
-                                                    SpeciesID) + (1 |
-                                                                    Year) + (1 |
-                                                                               Year:SpeciesID) + (1 |
-                                                                                                    Plot) + (0 + Peak_Temp_new | speciesplot),
-    data = df_phen_event
-  )
-summary(m.full4)
-#Model comparison shows that this model is really bad
-
-#Try with a very simplified model without forcing correlation parameters to zero.
-m.full5 <-
-  lmer(
-    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + (1 |
-                                                    Plot) + (1 + Peak_Temp_new | speciesplot),
-    data = df_phen_event
-  )
-#The model converges! But model is not as good as m.full. We do prefer a model that is not overparametrized, though.
-summary(m.full5)
-
-anova(m.full, m.full1, m.full2, m.full3, m.full4, m.full5)
+peak_coefs <- summary(m.peak)$coefficients[2,1:ncol(summary(m.peak)$coefficients)]
+peak_coefs <- data.frame(summary(m.peak)$coefficients[c(2:3),c(1:3)])
+peak_coefs$variable <- c("Snowmelt", "Temperature")
+peak_coefs$pheno <- "Peak"
 
 ```
 
 Create table from effect of climate variables on community peak phenology.
 
-```{r output=TRUE}
-tab_model(m.full5, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
-         title = "Peak ~ Snowmelt + Temp + Year + (1 | Plot) + (1 + Temp | Taxa:Plot)", terms = c("(Intercept)", "Snowmelt", "Peak_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
-```
-
-Full model for duration of activity of the arthropod community.
+**Table S5.1** Effect sizes of snowmelt timing and temperature on arthropod community peak activity. Random intercepts and slopes of taxa and habitat as well as sampling variance have been included, but results are not shown in table.
 
 ```{r}
-m.full.dur <-
-  lmer(
-    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + (1 + Snowmelt + Onset_Temp_new |
-                                                         SpeciesID) + (1 |
-                                                                         Year) + (1 |
-                                                                                    Year:SpeciesID) + (1 |
-                                                                                                         Plot) + (1 + Snowmelt + Onset_Temp_new |
-                                                                                                                    SpeciesID:Plot),
-    data = df_phen_event
-  )
-summary(m.full.dur)
-#Model does not converge 
+#| message: false
+#| warning: false
+#| echo: false
 
-#Try with a very simplified model without forcing correlation parameters to zero.
-m.full.dur5 <-
-  lmer(
-    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + (1 |
-                                                    Plot) + (1 + Onset_Temp_new | speciesplot),
-    data = df_phen_event
-  )
-#The model converges! But model is not as good as m.full. We do prefer a model that is not overparametrized, though.
-summary(m.full.dur5)
-
-anova(m.full.dur, m.full.dur5)
+tab_model(m.peak, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE, show.re.var = FALSE,
+         title = "Peak ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa) + (1 + Temp + snow | Plot)", terms = c("(Intercept)", "snow_scaled", "peaktemp_scaled", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
 ```
 
 ```{r}
-tab_model(m.full.dur5, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
-          terms = c("(Intercept)", "Snowmelt", "Onset_Temp_new", "Year"), 
-          pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), title = "Duration ~ Snowmelt + Temp + Year (1 | Plot) + (1 + Temp | Taxa:Plot)", dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.duration <-
+  lmer(
+    Duration ~ 1 + snow_scaled + onsettemp_scaled + Year + 
+      (1 | Plot) +
+      (1 + snow_scaled + onsettemp_scaled | speciesplot) +
+      (1 + snow_scaled + onsettemp_scaled | SpeciesID) +
+      (1 + snow_scaled + onsettemp_scaled | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.duration)
+
+duration_coefs <- summary(m.duration)$coefficients[2,1:ncol(summary(m.duration)$coefficients)]
+duration_coefs <- data.frame(summary(m.duration)$coefficients[c(2:3),c(1:3)])
+duration_coefs$variable <- c("Snowmelt", "Temperature")
+duration_coefs$pheno <- "Duration"
 ```
+
+**Table S5.2** Effect sizes of snowmelt timing and temperature on arthropod community duration of activity. Random intercepts and slopes of taxa and habitat as well as sampling variance have been included, but results are not shown in table.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.duration, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE, show.re.var = FALSE,
+         title = "Duration ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa) + (1 + Temp + snow | Plot)", terms = c("(Intercept)", "snow_scaled", "onsettemp_scaled", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.onset <-
+  lmer(
+    Onset ~ 1 + snow_scaled + onsettemp_scaled + Year + 
+      (1 | Plot) +
+      (1 + snow_scaled + onsettemp_scaled | speciesplot) +
+      (1 + snow_scaled + onsettemp_scaled | SpeciesID) +
+      (1 + snow_scaled + onsettemp_scaled | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.onset)
+
+onset_coefs <- summary(m.onset)$coefficients[2,1:ncol(summary(m.onset)$coefficients)]
+onset_coefs <- data.frame(summary(m.onset)$coefficients[c(2:3),c(1:3)])
+onset_coefs$variable <- c("Snowmelt", "Temperature")
+onset_coefs$pheno <- "Onset"
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.end <-
+  lmer(
+    End ~ 1 + snow_scaled + endtemp_scaled + Year + 
+      (1 | Plot) +
+      (1 + snow_scaled + endtemp_scaled | speciesplot) +
+      (1 + snow_scaled + endtemp_scaled | SpeciesID) +
+      (1 + snow_scaled + endtemp_scaled | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.end)
+
+end_coefs <- summary(m.end)$coefficients[2,1:ncol(summary(m.end)$coefficients)]
+end_coefs <- data.frame(summary(m.end)$coefficients[c(2:3),c(1:3)])
+end_coefs$variable <- c("Snowmelt", "Temperature")
+end_coefs$pheno <- "End"
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+df_combine <- bind_rows(onset_coefs,peak_coefs,end_coefs,duration_coefs)
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+df_combine$pheno <- factor(df_combine$pheno,                 # Relevel group factor
+                         levels = c("Onset", "Peak", "End", "Duration"))
+
+ggplot(df_combine, aes(pheno, Estimate, fill = pheno)) +
+  xlab("") +
+  ylab("Standardized effect size") +
+  coord_cartesian(ylim=c(-25, 65)) +
+  geom_errorbar(
+    aes(
+      ymin = Estimate - Std..Error,
+      ymax = Estimate + Std..Error,
+      color = pheno
+    ),
+    alpha = 0.8,
+    width = 0.1,
+    linewidth = 1
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_point(size = 3,
+             shape = 21,
+             color = "black") +
+  facet_grid(. ~ variable) +
+  scale_fill_viridis_d(option = "plasma") +
+  scale_color_viridis_d(option = "plasma") +
+  theme_bw() +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    panel.spacing = unit(.08, "lines"),
+    panel.border = element_rect(
+      color = "black",
+      fill = NA,
+      size = 0.5),
+      axis.text.y = element_text(hjust = 0.5, size = 12),
+      axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+      axis.title.y = element_text(vjust = 2, size = 14)
+      #plot.margin = margin(10,4,10,4,"cm")
+    )
+
+```
+
+**Figure S5.1** The relative effect of snowmelt timing and temperature across all arthropod phenological events (onset, peak, end and duration of activity). Standardized effect sizes are defined as the slope coefficients derived from scaled and centred explanatory variables. Timing of snowmelt is the primary driver of arthropod phenology, with earlier onset, peak and end of phenology as the snow melts earlier. The duration of activity extends with earlier snowmelt timing. The effect of temperature on phenology is substantially smaller, but temperature is significantly correlated with phenology such that arthropod phenology starts earlier with warming.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+df_combine$pheno <- factor(df_combine$pheno,                 # Relevel group factor
+                         levels = c("Duration", "End", "Peak", "Onset"))
+
+ggplot(df_combine, aes(Estimate, pheno, fill = pheno)) +
+     xlab("Standardized effect size") +
+     ylab("") +
+     coord_cartesian(xlim=c(-25, 65)) +
+     geom_errorbar(
+         aes(
+             xmin = Estimate - Std..Error,
+             xmax = Estimate + Std..Error,
+             color = pheno
+         ),
+         alpha = 0.8,
+         width = 0.1,
+         linewidth = 1
+     ) +
+     geom_vline(xintercept = 0, linetype = "dashed") +
+     geom_point(size = 3,
+                shape = 21,
+                color = "black") +
+     facet_grid(. ~ variable) +
+     scale_fill_viridis_d(option = "plasma") +
+     scale_color_viridis_d(option = "plasma") +
+     theme_bw() +
+     theme(
+         panel.background = element_rect(fill = "white"),
+         panel.spacing = unit(.08, "lines"),
+         panel.border = element_rect(
+             color = "black",
+             fill = NA,
+             size = 0.5),
+         axis.text.y = element_text(hjust = 0.5, size = 12),
+         axis.text.x = element_text(vjust = 0.5, size = 12),
+         axis.title.x = element_text(vjust = -1, size = 14),
+         legend.position = "none"
+         #plot.margin = margin(10,2,10,2,"cm")
+     )
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| output: false
+#| echo: false
+
+library(ggpubr)
+
+#Visualize community trends
+peak <- ggplot(df_phen_event, aes(x = Snowmelt, y = Peak, color = SpeciesID)) +
+     #facet_wrap(~ Habitat, nrow=2) +   # a panel for each mountain range
+     geom_point(alpha = 0.5) +
+     ylab("Peak activity (Day of Year)") +
+     xlab("Snowmelt timing (Day of Year)") +
+     theme_classic() +
+     scale_color_viridis_d(option = "plasma") +
+     geom_smooth(se = FALSE, method = "lm", linewidth = 2) +
+     theme(legend.position = "none",
+           axis.title.y = element_text(vjust = 2, size = 14),
+           axis.title.x = element_text(vjust = 0.8, size = 14),
+           axis.text.y = element_text(hjust = 0.5, size = 12),
+           axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+           plot.margin = margin(10,1,10,0.5, "cm"))
+
+duration <- ggplot(df_phen_event, aes(x = Snowmelt, y = Duration, color = SpeciesID)) +
+     #facet_wrap(~ Habitat, nrow=2) +   # a panel for each mountain range
+     geom_point(alpha = 0.5) +
+     ylab("Duration of activity (No. of days)") +
+     xlab("Snowmelt timing (Day of Year)") +
+     theme_classic() +
+     scale_color_viridis_d(option = "plasma") +
+     geom_smooth(se = FALSE, method = "lm", linewidth = 2) +
+     theme(legend.position = "none",
+           axis.title.y = element_text(vjust = 2, size = 14),
+           axis.title.x = element_text(vjust = 0.8, size = 14),
+           axis.text.y = element_text(hjust = 0.5, size = 12),
+           axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+           plot.margin = margin(10,0.5,10,1, "cm"))
+
+ggarrange(peak, duration)
+
+#Visualize community trends
+peak_temp <- ggplot(df_phen_event, aes(x = Peak_Temp30, y = Peak, color = SpeciesID)) +
+     #facet_wrap(~ Habitat, nrow=2) +   # a panel for each mountain range
+     geom_point(alpha = 0.5) +
+     ylab("Peak activity (Day of Year)") +
+     xlab("Air temperature (ºC)") +
+     theme_classic() +
+     scale_color_viridis_d(option = "plasma") +
+     geom_smooth(se = FALSE, method = "lm", linewidth = 2) +
+  #facet_wrap(Habitat ~ .) +
+     theme(legend.position = "none",
+           axis.title.y = element_text(vjust = 2, size = 14),
+           axis.title.x = element_text(vjust = 0.8, size = 14),
+           axis.text.y = element_text(hjust = 0.5, size = 12),
+           axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+           plot.margin = margin(10,1,10,0.5, "cm"))
+
+duration_temp <- ggplot(df_phen_event, aes(x = Onset_Temp30, y = Duration, color = SpeciesID)) +
+     #facet_wrap(~ Habitat, nrow=2) +   # a panel for each mountain range
+     geom_point(alpha = 0.5) +
+     ylab("Duration of activity (No. of days)") +
+     xlab("Air temperature (ºC)") +
+     theme_classic() +
+     scale_color_viridis_d(option = "plasma") +
+     geom_smooth(se = FALSE, method = "lm", linewidth = 2) +
+     #facet_wrap(Habitat ~ .) +
+     theme(legend.position = "none",
+           axis.title.y = element_text(vjust = 2, size = 14),
+           axis.title.x = element_text(vjust = 0.8, size = 14),
+           axis.text.y = element_text(hjust = 0.5, size = 12),
+           axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+           plot.margin = margin(10,0.5,10,1, "cm"))
+
+ggarrange(peak_temp, duration_temp)
+```
+
+**Same models but with no scaling of variables to get information on the rate of phenological response (slope estimates)**
+
+We also want to know how much variance taxon and habitat hold and therefore we compare models with and without random effects:
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.peak <-
+  lmer(
+    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + 
+      (1 | Plot) +
+      (1 + Snowmelt + Peak_Temp_new | speciesplot) +
+      (1 + Snowmelt + Peak_Temp_new | SpeciesID) +
+      (1 + Snowmelt + Peak_Temp_new | Habitat), REML = TRUE,
+    data = df_phen_event
+  )
+
+summary(m.peak)
+
+m.peak1 <-
+  lmer(
+    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + 
+      (1 + Snowmelt + Peak_Temp_new | speciesplot), REML = TRUE,
+    data = df_phen_event
+  )
+
+summary(m.peak1)
+
+m.peak2 <-
+  lmer(
+    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + 
+      (1 + Snowmelt + Peak_Temp_new | speciesplot) +
+      (1 + Snowmelt + Peak_Temp_new | SpeciesID), REML = TRUE,
+    data = df_phen_event
+  )
+
+summary(m.peak2)
+
+m.peak3 <-
+  lmer(
+    Peak ~ 1 + Snowmelt + Peak_Temp_new + Year + 
+      (1 | Plot) +
+      (1 + Snowmelt + Peak_Temp_new | speciesplot) +
+      (1 + Snowmelt + Peak_Temp_new | Habitat), REML = TRUE,
+    data = df_phen_event
+  )
+
+summary(m.peak3)
+
+AIC(m.peak, m.peak1, m.peak2, m.peak3)
+
+peak_coefs <- summary(m.peak)$coefficients[2,1:ncol(summary(m.peak)$coefficients)]
+peak_coefs <- data.frame(summary(m.peak)$coefficients[c(2:3),c(1:3)])
+peak_coefs$variable <- c("Snowmelt", "Temperature")
+peak_coefs$pheno <- "Peak"
+
+```
+
+**Table S5.3** To test the variance partitioned between taxa and plot in peak phenological response to snowmelt timing and temperature, we compared the full model (including sampling variance, taxa and plot) with simple models including one random effect.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.peak, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Peak ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa) + (1 + Temp + snow | Plot)", terms = c("(Intercept)", "Snowmelt", "Peak_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.peak1, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Peak ~ Snowmelt + Temp + Year", terms = c("(Intercept)", "Snowmelt", "Peak_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.peak2, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Peak ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa)", terms = c("(Intercept)", "Snowmelt", "Peak_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.peak3, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Peak ~ Snowmelt + Temp + Year + (1 + Temp + snow | Habitat)", terms = c("(Intercept)", "Snowmelt", "Peak_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+Coefficients from full model
+
+```{r}
+coef_peak <- coef(m.peak)$SpeciesID
+
+library(knitr)
+
+coefficients_df <- as.data.frame(coef_peak)
+
+coefficients_table <- kable(coefficients_df, caption = "Coefficients Table")
+
+print(coefficients_table)
+
+```
+
+```{r}
+coef(m.peak)$Habitat
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.duration <-
+  lmer(
+    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year +
+      (1 | Plot) +
+      (1 + Snowmelt + Onset_Temp_new | speciesplot) +
+      (1 + Snowmelt + Onset_Temp_new | SpeciesID) +
+      (1 + Snowmelt + Onset_Temp_new | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.duration)
+
+m.duration1 <-
+  lmer(
+    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + 
+      (1 + Snowmelt + Onset_Temp_new | speciesplot),
+    data = df_phen_event
+  )
+
+summary(m.duration1)
+
+m.duration2 <-
+  lmer(
+    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year + 
+      (1 + Snowmelt + Onset_Temp_new | speciesplot) +
+      (1 + Snowmelt + Onset_Temp_new | SpeciesID),
+    data = df_phen_event
+  )
+
+summary(m.duration2)
+
+m.duration3 <-
+  lmer(
+    Duration ~ 1 + Snowmelt + Onset_Temp_new + Year +
+      (1 | Plot) +
+      (1 + Snowmelt + Onset_Temp_new | speciesplot) +
+      (1 + Snowmelt + Onset_Temp_new | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.duration3)
+
+duration_coefs <- summary(m.duration)$coefficients[2,1:ncol(summary(m.duration)$coefficients)]
+duration_coefs <- data.frame(summary(m.duration)$coefficients[c(2:3),c(1:3)])
+duration_coefs$variable <- c("Snowmelt", "Temperature")
+duration_coefs$pheno <- "Duration"
+```
+
+**Table S5.4** To test the variance partitioned between taxa and plot in duration of phenology to snowmelt timing and temperature, we compared the full model (including sampling variance, taxa and plot) with simple models including one random effect.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.duration, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Duration ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa) + (1 + Temp + snow | Plot)", terms = c("(Intercept)", "Snowmelt", "Onset_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.duration1, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Duration ~ Snowmelt + Temp + Year", terms = c("(Intercept)", "Snowmelt", "Onset_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.duration2, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Duration ~ Snowmelt + Temp + Year + (1 + Temp + snow | Taxa)", terms = c("(Intercept)", "Snowmelt", "Onset_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+tab_model(m.duration3, show.intercept = TRUE, show.est = TRUE, show.se = TRUE, show.p = TRUE, show.stat = TRUE, show.ci = FALSE,
+         title = "Duration ~ Snowmelt + Temp + Year + (1 + Temp + snow | Plot)", terms = c("(Intercept)", "Snowmelt", "Onset_Temp_new", "Year"), pred.labels = c("Intercept", "Snowmelt", "Temp", "Year"), dv.labels = "", string.est = "Coeff", string.se = "SE", string.stat = "t", string.p = "P-Value")
+```
+
+```{r}
+coef(m.duration)$SpeciesID
+```
+
+```{r}
+coef(m.duration)$Habitat
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.onset <-
+  lmer(
+    Onset ~ 1 + Snowmelt + Onset_Temp_new + Year + 
+      (1 | Plot) +
+      (1 + Snowmelt + Onset_Temp_new | speciesplot) +
+      (1 + Snowmelt + Onset_Temp_new | SpeciesID) +
+      (1 + Snowmelt + Onset_Temp_new | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.onset)
+
+onset_coefs <- summary(m.onset)$coefficients[2,1:ncol(summary(m.onset)$coefficients)]
+onset_coefs <- data.frame(summary(m.onset)$coefficients[c(2:3),c(1:3)])
+onset_coefs$variable <- c("Snowmelt", "Temperature")
+onset_coefs$pheno <- "Onset"
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+m.end <-
+  lmer(
+    End ~ 1 + Snowmelt + End_Temp_new + Year +
+      (1 | Plot) +
+      (1 + Snowmelt + End_Temp_new | speciesplot) +
+      (1 + Snowmelt + End_Temp_new | SpeciesID) +
+      (1 + Snowmelt + End_Temp_new | Habitat),
+    data = df_phen_event
+  )
+
+summary(m.end)
+
+end_coefs <- summary(m.end)$coefficients[2,1:ncol(summary(m.end)$coefficients)]
+end_coefs <- data.frame(summary(m.end)$coefficients[c(2:3),c(1:3)])
+end_coefs$variable <- c("Snowmelt", "Temperature")
+end_coefs$pheno <- "End"
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| output: false
+
+df_combine <- bind_rows(onset_coefs,peak_coefs,end_coefs,duration_coefs)
+
+df_combine <-
+  readxl::read_xlsx("Data/phenology_data/df_combine.xlsx")
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+df_combine$pheno <- factor(df_combine$pheno,                 # Relevel group factor
+                         levels = c("Onset", "Peak", "End", "Duration"))
+
+ggplot(df_combine, aes(pheno, Estimate, fill = pheno)) +
+  xlab("") +
+  ylab("Phenological response") +
+  coord_cartesian(ylim=c(-4, 4)) +
+  geom_errorbar(aes(ymin = Estimate - Std..Error, ymax = Estimate + Std..Error, color = pheno), alpha = 0.8, width = 0.1, linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_point(size = 3, shape = 21, color = "black") +
+  facet_grid(. ~ variable) +
+  scale_fill_viridis_d(option = "plasma") +
+  scale_color_viridis_d(option = "plasma") +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0.5, size = 12),
+      axis.text.x = element_text(angle = 35, vjust = 0.5, size = 12),
+      axis.title.y = element_text(vjust = 2, size = 14))
+    #plot.margin = margin(10,4,10,4,"cm"))
+```
+
+**Figure S5.2** Arthropod community phenological responses to snowmelt timing and temperature across all arthropod phenological events (onset, peak, end and duration of activity).

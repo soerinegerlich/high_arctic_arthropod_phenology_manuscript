@@ -45,27 +45,44 @@ df_phenology$SpeciesID[df_phenology$SpeciesID == "MYSC"] <-
   "Sciaridae"
 
 
+#df_phenology %>%
+#  group_by(Order, SpeciesID, Plot) %>%
+#  summarise(
+#    Average_Onset = mean(Onset, na.rm = TRUE),
+#    Average_Peak = mean(Peak, na.rm = TRUE),
+#    Average_End = mean(End, na.rm = TRUE),
+#    SE_Onset = sd(Onset, na.rm = TRUE) / sqrt(sum(!is.na(Onset))),
+#    SE_Peak = sd(Peak, na.rm = TRUE) / sqrt(sum(!is.na(Peak))),
+#    SE_End = sd(End, na.rm = TRUE) / sqrt(sum(!is.na(End)))
+#  ) -> df_mean
+
+
 df_phenology %>%
   group_by(Order, SpeciesID, Plot) %>%
   summarise(
     Average_Onset = mean(Onset, na.rm = TRUE),
     Average_Peak = mean(Peak, na.rm = TRUE),
     Average_End = mean(End, na.rm = TRUE),
+    SD_Onset = sd(Onset, na.rm = TRUE),
+    SD_Peak = sd(Peak, na.rm = TRUE),
+    SD_End = sd(End, na.rm = TRUE),
     SE_Onset = sd(Onset, na.rm = TRUE) / sqrt(sum(!is.na(Onset))),
     SE_Peak = sd(Peak, na.rm = TRUE) / sqrt(sum(!is.na(Peak))),
     SE_End = sd(End, na.rm = TRUE) / sqrt(sum(!is.na(End)))
   ) -> df_mean
 
+
+
 df_mean_order <-
   merged.stack(
     df_mean,
     id.vars = c("Order", "SpeciesID", "Plot"),
-    var.stubs = c("Average_", "SE_"),
+    var.stubs = c("Average_", "SD_", "SE_"),
     sep = "var.stubs"
   )
 
 names(df_mean_order) <-
-  c("Order", "SpeciesID", "Plot", "Pheno_event", "DOY", "SE")
+  c("Order", "SpeciesID", "Plot", "Pheno_event", "DOY", "SD", "SE")
 
 df_Peak <- subset(df_mean_order, Pheno_event == "Peak")
 
@@ -127,12 +144,28 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
     linetype = "dashed",
     color = "gray"
   ) +
+  geom_crossbar(aes(
+    xmin=DOY-SD, 
+    xmax=DOY+SD, 
+    y = Plot,
+    fill = Habitat), 
+    alpha = 0.6,
+    linewidth = 0.3, 
+    width = 0.6,
+    color = "black") +
+  geom_errorbar(aes(
+    xmin = DOY - SE,
+    xmax = DOY + SE,
+    y = Plot,
+    width = 0.10
+  ),
+  color = "black") +
   geom_point(aes(
-    color = Habitat,
     shape = Habitat,
     fill = Habitat
   ),
-  size = 3,
+  size = 2,
+  color = "black",
   na.rm = TRUE) +
   xlab("Day of Year")+
   #geom_text(aes(label = round(SE, digits = 2)), hjust=-1, vjust=-0.2)+
@@ -144,20 +177,13 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
   scale_shape_manual(values = c(22, 21, 24, 23)) +
   scale_fill_viridis(discrete = TRUE)+
   scale_color_viridis(discrete = TRUE)+
-  geom_errorbar(aes(
-    xmin = DOY - SE,
-    xmax = DOY + SE,
-    y = Plot,
-    color = Habitat,
-    width = 0.10
-  )) +
   #scale_y_discrete(expand = expansion(add = 1)) +
   force_panelsizes(rows = unit(unit(c(
-    2, 2, 2, 1, 2, 2, 2, 2, 0.5, 2, 2, 2, 2, 1, 1
+    1.5, 1.5, 1.5, 0.8, 1.5, 1.5, 1.5, 1.5, 0.5, 1.5, 1.5, 1.5, 1.5, 0.8, 0.8
   ), "cm")),
   TRUE) +
   theme(
-    strip.text.y = element_text(angle = 0, size = 10),
+    strip.text.y = element_text(angle = 0, size = 8),
     panel.background = element_rect(fill = "white"),
     panel.spacing = unit(.1, "lines"),
     panel.border = element_rect(color = "grey60", fill = NA),
@@ -169,6 +195,7 @@ ggplot(df_Peak[complete.cases(df_Peak), ], aes(x = DOY, y = Plot, na.rm = TRUE))
     legend.text = element_text(size = 10),
     legend.title = element_text(size = 10),
     strip.background = element_rect(colour = "black", fill = "white"),
-    plot.margin = margin(t = 3, r = 1, b = 3, l = 2, unit = "cm")
+    plot.margin = margin(t = 6, r = 2, b = 6, l = 2, unit = "cm")
+    #plot.margin = margin(t = 3, r = 1, b = 3, l = 2, unit = "cm")
   )
 

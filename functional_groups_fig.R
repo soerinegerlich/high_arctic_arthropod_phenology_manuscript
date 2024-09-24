@@ -124,9 +124,11 @@ Order <- c("Decomposer", "Herbivore", "Parasitoid", "Mixed feeder", "Predator",
 Pheno_event <- c("Peak","Peak","Peak","Peak","Peak",
                  "Duration","Duration","Duration","Duration",
                  "Duration")
-Slope <- c(0.12, 0.25, 0.47, 0.51, 0.08,-0.22, -0.05, 0.16, -0.16, -0.50)
-SE <- c(0.10, 0.12, 0.07, 0.12, 0.08, 0.06, 0.13, 0.06, 0.12, 0.07)
-Pvalue <- c(0.001, 0.41, 0.07, 0.051, 0.001, 0.22,0.77, 0.19, 0.32, 0.71)
+Slope <- c(0.11, 0.28, 0.40, 0.41, 0.08,
+           -0.22, -0.07, -0.08, 0.10, -0.40)
+SE <- c(0.06, 0.12, 0.10, 0.04, 0.07,
+        0.06, 0.12, 0.11, 0.05, 0.07)
+Pvalue <- c(0.25, 0.05, 0.001, 0.001, 0.79, 0.22,0.77, 0.19, 0.32, 0.71)
 
 df_functional_group <- as.data.frame(Order)
 df_functional_group$Pheno_event <- Pheno_event
@@ -149,10 +151,10 @@ Snowmelt <- ggplot(df_functional_group, aes(Slope, Order))+
   #facet_grid(~N) +
   xlab("")+
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
+  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, color = Order), size = 0.3, width = 0.10)+
   #xlab("Temperature")+
   #xlim(-0.7,0.7)+
-  geom_point(aes(color = Order, fill = Order),size = 1.5, alpha = 0.7, stroke = 1) +
-  geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, color = Order), size = 0.3, width = 0.10)+
+  geom_point(aes(fill = Order), shape = 21, color = "black", size = 2, alpha = 0.9, stroke = 0.5) +
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   facet_grid(cols = vars(Pheno_event), drop = TRUE, scales = "free_y", space = "free")+
   scale_x_continuous(breaks = c(-0.4,0,0.4))+
@@ -181,10 +183,10 @@ Order <- c("Decomposer", "Herbivore", "Parasitoid", "Mixed feeder", "Predator",
 Pheno_event <- c("Peak","Peak","Peak","Peak","Peak",
                  "Duration","Duration","Duration","Duration",
                  "Duration")
-Slope <- c(-0.77, -1.07, -0.93, -0.70, -0.68,
-           -0.78, -1.45, 0.27, 2.16, -1.08)
-SE <- c(0.97, 1.45, 0.75, 1.15, 1.08,
-        0.76, 1.32, 0.55, 1.18, 0.75)
+Slope <- c(-1.45, -1.14, -2.02, -1.24, -1.52,
+           -0.38, -1.15, 2.28, -0.05, -0.41)
+SE <- c(0.68, 1.37, 0.83, 0.43, 0.74,
+        0.68, 1.30, 1.17, 0.56, 0.76)
 Pvalue <- c(0.001, 0.001, 0.01, 0.001, 0.001, 0.06, 0.40, 0.48, 0.002, 0.09)
 
 df_functional_group_temp <- as.data.frame(Order)
@@ -209,8 +211,8 @@ Temperature <- ggplot(df_functional_group_temp, aes(Slope, Order))+
   ylab("")+
   #ylim(-3.5,3.5)+
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Order, fill = Order),size = 1.5, alpha = 0.7, stroke = 1) +
   geom_errorbar(aes(xmin=Slope-SE, xmax=Slope+SE, color = Order), size = 0.3, width = 0.10)+
+  geom_point(aes(fill = Order), shape = 21, color = "black", size = 2, alpha = 0.9, stroke = 0.5) +
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   scale_x_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
   facet_grid(cols = vars(Pheno_event), drop = TRUE, scales = "free_y", space = "free")+
@@ -235,16 +237,20 @@ Temperature <- ggplot(df_functional_group_temp, aes(Slope, Order))+
         panel.spacing=unit(0.5,"lines"))
 
 functional <- ggarrange(Snowmelt, Temperature, labels = c("(a) Functional groups", "(b)"), 
-          hjust = c(-0.4,-0.2), vjust = -1, 
-          ncol = 2, nrow = 1,
-          font.label=list(color="black",size=12))
+                        hjust = c(-0.4,-0.2), vjust = -1, 
+                        ncol = 2, nrow = 1,
+                        font.label=list(color="black",size=12))
+
+
 
 
 Trait <- c("Early", "Late", "Flying", "Surface", "Early", "Late", "Flying", "Surface")
 Snow <- c("Snowmelt", "Snowmelt", "Snowmelt", "Snowmelt", "Snowmelt", "Snowmelt", "Snowmelt", "Snowmelt")
 Event <- c("Peak", "Peak", "Peak", "Peak", "Duration", "Duration", "Duration", "Duration")
-Slope_snow <- c(0.25, 0.32, 0.46, 0.09, -0.12, -0.02, 0.11, -0.31)
-SE_snow <- c(0.03, 0.06, 0.05, 0.05, 0.03, 0.06, 0.04, 0.05)
+Slope_snow <- c(0.23, 0.31, 0.42, 0.12, 
+                -0.10, -0.14, 0.07, -0.30)
+SE_snow <- c(0.03, 0.06, 0.05, 0.05, 
+             0.03, 0.06, 0.04, 0.05)
 
 df_trait <- as.data.frame(Trait)
 df_trait$Event <- Event
@@ -268,8 +274,8 @@ trait_snow <- ggplot(df_trait, aes(Slope_snow, Trait))+
   #xlab("")+
   #xlim(-0.7,0.7)+
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Trait, fill = Trait),size = 1.5, alpha = 0.7, stroke = 1) +
   geom_errorbar(aes(Slope_snow, Trait, xmin=Slope_snow-SE_snow, xmax=Slope_snow+SE_snow, color = Trait), size = 0.3, width = 0.10)+
+  geom_point(aes(color = Trait, fill = Trait), shape = 21, color = "black", size = 2, alpha = 0.9, stroke = 0.5) +
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   scale_x_continuous(breaks = c(-0.4,0,0.4))+
   facet_grid(cols = vars(Event), drop = TRUE, scales = "free_x", space = "free")+
@@ -297,8 +303,10 @@ trait_snow <- ggplot(df_trait, aes(Slope_snow, Trait))+
 Trait <- c("Early", "Late", "Flying", "Surface","Early", "Late", "Flying", "Surface")
 Temp <- c("Temperature", "Temperature", "Temperature", "Temperature","Temperature", "Temperature", "Temperature", "Temperature")
 Event <- c("Peak", "Peak", "Peak", "Peak", "Duration", "Duration", "Duration", "Duration")
-Slope_temp <- c(-1.71, -0.27, -1.32, -1.18, -0.23, 0.24, 0.55, -0.93)
-SE_temp <- c(0.57, 0.77, 0.56, 0.66, 0.34, 0.65, 0.42, 0.42)
+Slope_temp <- c(-1.86, -1.03, -1.94, -1.32, 
+                -0.11, 0.04, 0.60, -0.76)
+SE_temp <- c(0.57, 0.77, 0.56, 0.66, 
+             0.34, 0.65, 0.42, 0.42)
 
 df_trait_temp <- as.data.frame(Trait)
 df_trait_temp$Event <- Event
@@ -322,8 +330,8 @@ trait_temp <- ggplot(df_trait_temp, aes(Slope_temp, Trait))+
   #xlab("")+
   #xlim(-3.5,3.5)+
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1)+
-  geom_point(aes(color = Trait, fill = Trait),size = 1.5, alpha = 0.7, stroke = 1) +
   geom_errorbar(aes(Slope_temp, Trait, xmin=Slope_temp-SE_temp, xmax=Slope_temp+SE_temp, color = Trait), size = 0.3, width = 0.10)+
+  geom_point(aes(color = Trait, fill = Trait), shape = 21, color = "black", size = 2, alpha = 0.9, stroke = 0.5) +
   #position=position_dodge(0.05), size = 1, alpha = 0.7)+
   #scale_y_continuous(limits=c(-3.5,3.5), breaks = c(-3,-2,-1,0,1,2,3))+
   facet_grid(cols = vars(Event), drop = TRUE, scales = "free_x", space = "free")+
@@ -356,6 +364,7 @@ Trait_all <- ggarrange(trait_snow, trait_temp,
 
 
 ggarrange(functional, Trait_all, ncol = 1, nrow = 2) +
-  theme(plot.margin = margin(5,2,5,2, "cm"))
+  theme(plot.margin = margin(8,2,8,2, "cm"))
+
 
 

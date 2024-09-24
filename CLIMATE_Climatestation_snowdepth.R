@@ -142,13 +142,13 @@ df3 %>%
 
 df_temp <-
   read.csv(
-    "Data/Snowmelt_TemperatureData.csv",
+    "Data/snowmelt_data/Snowmelt_TemperatureData.csv",
     sep = ",",
     stringsAsFactors = FALSE,
     header = TRUE
   )
 dfsnowmelt_climatestation <-
-  readxl::read_xlsx("Data/Snowmelt_snowmeltDOY_temperature_censor.xlsx")
+  readxl::read_xlsx("Data/snowmelt_data/Snowmelt_snowmeltDOY_temperature_censor.xlsx")
 
 dfsnowmelt_climatestation <-
   subset(dfsnowmelt_climatestation, Year != "1996")
@@ -170,24 +170,24 @@ ggplot(dfsnowmelt_climatestation, aes(DOY, SnowmeltDOY)) +
     panel.background = element_rect(fill = "white"),
     axis.title.y = element_text(
       face = "bold",
-      size = 15,
+      size = 12,
       color = "black",
-      vjust = 2
+      vjust = 3
     ),
     axis.title.x = element_text(
       face = "bold",
-      size = 15,
+      size = 12,
       color = "black",
       vjust = -1
     ),
     axis.text.y = element_text(
       face = "bold",
-      size = 15,
+      size = 10,
       color = "black"
     ),
     axis.text.x = element_text(
       face = "bold",
-      size = 15,
+      size = 10,
       color = "black"
     ),
     panel.border = element_rect(
@@ -195,7 +195,7 @@ ggplot(dfsnowmelt_climatestation, aes(DOY, SnowmeltDOY)) +
       fill = NA,
       size = 2
     ),
-    plot.margin = margin(1, 1, 1, 1, "cm")
+    plot.margin = margin(10, 4, 10, 4, "cm")
   )
 
 res1 <-
