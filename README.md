@@ -3,7 +3,7 @@
 ## Content
 This repository contains the code and data necessary to replicate data analyses, figures and tables in:
 
-Gerlich, Hannah Sørine, Martin Holmstrup, Niels Martin Schmidt and Toke T. Høye. (2024). Preprint. ***Phenological responses to climate change across taxa and local habitats in a high-Arctic arthropod community***
+Gerlich, Hannah Sørine, Martin Holmstrup, Niels Martin Schmidt and Toke T. Høye. (Accepted). ***Phenological responses to climate change across taxa and local habitats in a high-Arctic arthropod community***. Ecological Monographs.
 
 ## Contact
 Hannah Sørine Gerlich
@@ -22,7 +22,7 @@ Email: soger [at] ecos.au.dk
 All code provided for data preparation and analysis is licensed under a MIT License. In accordance with the license the code is available to be shared and adapted, but we would appreciate attribution to the authors, e.g. through citation of the above manuscript, and indications where changes were made. Although not mandatory, we additionally suggest that code users contact and collaborate with contributors should the code form a substantial proportion of a particular publication or analysis.
 
 # Data preparation and clean up
-The data preparation, cleaning and assembly scripts can be found here:
+All data (raw as well as cleaned and prepared) can be found here:
 
 ```
 /Data/phenology_data
@@ -32,6 +32,16 @@ The data preparation, cleaning and assembly scripts can be found here:
 ```
 
 *Important:* Please note that this summarised data is for archival purposes only. If you intend to use the phenological observations in this dataset please refer to the data usage guidance for the raw data sets described above. 
+
+These scripts contain R code for data preparation, cleaning and assembly:
+
+```
+/Data_cleanup.R
+/Data_cleanup_Acari_lyco_correction.R
+/CLIMATE_Zackenberg_temperature_data_cleanup_and_calculation_of_variables.R
+/CLIMATE_Climatestation_snowdepth
+
+```
 
 The following path leads directly to the phenological estimates and climate variables used to conduct the analysis:
 
@@ -44,24 +54,22 @@ The following path leads directly to the phenological estimates and climate vari
 *Please note:* phenology_metrics.csv includes phenology estimates for analysis of temporal trends. Pheno_air_temp.csv also includes temperature data that can be related to arthropod phenology esimates.  
 
 # Analysis scripts
-The following quarto documents with all relevant code and detailed descriptions of each step of the analysis performed can be used to reproduce the analysis:
+Several scripts are available that include different types of analyses. However, the following quarto documents contain all relevant code and detailed descriptions of each step of the analysis performed in the study that can be used to reproduce the analysis:
 
 
 ```
-/Temporal_trends.qmd
+/Temporal_trends_updated.qmd
 /Pheno_response_climate.qmd
-/Multiple_regression_arthropod_taxa_responses_climate_PEAK.qmd
-/Multiple_regression_arthropod_taxa_responses_climate_DURATION.qmd
-/Functional_group_phenological_responses.qmd
+/Functional_group_phenological_responses_updated.qmd
 
 ```
 
-The following R scripts contains relevant code to reproduce figures 1 - 5
+The following R scripts contain relevant code to reproduce figures 2 - 6
 
 ```
 /climate_fig.R
 /pheno_niche_fig.R
-/pheno_responses_climate.R
+/pheno_climate_trends_fig.R
 /functional_groups_fig.R
 
 ```

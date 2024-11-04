@@ -75,10 +75,10 @@ df_phenology %>%   mutate(
   Order = case_when(
     SpeciesID == "Acari" ~ "Decomposer",
     SpeciesID == "ANMU" ~ "Mixed feeder",
-    SpeciesID == "Aphidoidea" ~ "Herbivor",
+    SpeciesID == "Aphidoidea" ~ "Herbivore",
     SpeciesID == "Chalcidoidea" ~ "Parasitoid",
     SpeciesID == "CHCE" ~ "Mixed feeder",
-    SpeciesID == "Coccoidea" ~ "Herbivor",
+    SpeciesID == "Coccoidea" ~ "Herbivore",
     SpeciesID == "Collembola" ~ "Decomposer",
     SpeciesID == "Culicidae" ~ "Mixed feeder",
     SpeciesID == "Ichneumonidae" ~ "Parasitoid",
@@ -303,14 +303,14 @@ Table with amount of variance explained by each random variable:
 
 **Table S** Variance explained by random effects (Species, habitat and functional group) included in the linear mixed model.
 
-|                        |           |             |                      |                   |                            |
-|------------------------|-----------|-------------|----------------------|-------------------|----------------------------|
-| **Random component**   |           |             | **Variance**         |                   |                            |
+|  |  |  |  |  |  |
+|------------|------------|------------|------------|------------|------------|
+| **Random component** |  |  | **Variance** |  |  |
 | **Phenological event** | **Taxon** | **Habitat** | **Functional group** | **Taxon:Habitat** | **Taxon:Functional group** |
-| **Onset**              | 10%       | 40%         | 21%                  | 26%               | 8%                         |
-| **Peak**               | 18%       | 27%         | 16%                  | 16%               | 18%                        |
-| **End**                | 15%       | 22%         | 12%                  | 16%               | 14%                        |
-| **Duration**           | 17%       | 25%         | 18%                  | 17%               | 17%                        |
+| **Onset** | 10% | 40% | 21% | 26% | 8% |
+| **Peak** | 18% | 27% | 16% | 16% | 18% |
+| **End** | 15% | 22% | 12% | 16% | 14% |
+| **Duration** | 17% | 25% | 18% | 17% | 17% |
 
 ## Temporal trend of all family-by-plot combinations for each phenological event
 
