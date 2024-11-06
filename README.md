@@ -10,6 +10,8 @@ Hannah Sørine Gerlich
 
 Email: soger [at] ecos.au.dk
 
+DOI: https://doi.org/10.5281/zenodo.14044300
+
 ## Data usage guidelines
 
 ### Data
